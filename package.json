@@ -1,20 +1,12 @@
 {
   "name": "docagent",
   "version": "1.0.0",
-  "description": "Document Generation Agent - Build a full-stack web application with Cloudflare Workers",
-  "main": "src/index.ts",
   "scripts": {
-    "build": "wrangler build",
-    "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "start": "wrangler dev",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts"
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241106.0",
-    "typescript": "^5.0.0",
     "wrangler": "^3.78.0"
-  },
-  "dependencies": {},
-  "private": true
+  }
 }
