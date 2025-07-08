@@ -1,62 +1,160 @@
-# Next.js Framework Starter
+### `README.md`
+```markdown
+# Document Agent - 文档生成智能体
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/next-starter-template)
+基于 Cloudflare Workers 的文档生成智能体，支持多种文档格式生成。
 
-<!-- dash-content-start -->
+## 功能特性
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app). It's deployed on Cloudflare Workers as a [static website](https://developers.cloudflare.com/workers/static-assets/).
+- 📄 支持多种文档格式生成 (PPT, PDF, Word, Excel 等)
+- 🌐 多语言支持 (中文/英文)
+- 📱 响应式设计，支持移动端
+- 🔐 访问权限控制
+- 📊 任务进度跟踪
+- 💾 文件存储与管理
 
-This template uses [OpenNext](https://opennext.js.org/) via the [OpenNext Cloudflare adapter](https://opennext.js.org/cloudflare), which works by taking the Next.js build output and transforming it, so that it can run in Cloudflare Workers.
+## 部署说明
 
-<!-- dash-content-end -->
+### 1. 环境变量配置
 
-Outside of this repo, you can start a new project with this template using [C3](https://developers.cloudflare.com/pages/get-started/c3/) (the `create-cloudflare` CLI):
+在 Cloudflare Workers 控制台设置以下环境变量：
 
 ```bash
-npm create cloudflare@latest -- --template=cloudflare/templates/next-starter-template
+PPT_AI_AGENT_API_KEY=your-api-key
+ACCESS_KEY=your-access-key
+BUCKET_NAME=your-bucket-name
+R2_ACCESS_KEY=your-r2-access-key
+R2_SECRET_KEY=your-r2-secret-key
+R2_ENDPOINT=your-r2-endpoint
 ```
 
-A live public deployment of this template is available at [https://next-starter-template.templates.workers.dev](https://next-starter-template.templates.workers.dev)
+### 2. 数据库配置
 
-## Getting Started
+创建 D1 数据库并执行以下 SQL：
 
-First, run:
+```sql
+CREATE TABLE pptaiagent (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    taskid TEXT NOT NULL,
+    userid TEXT NOT NULL,
+    filename TEXT DEFAULT '',
+    note TEXT DEFAULT '',
+    createat INTEGER NOT NULL,
+    status TEXT DEFAULT 'processing',
+    hasdeleted INTEGER DEFAULT 0
+);
+
+CREATE INDEX idx_userid ON pptaiagent(userid);
+CREATE INDEX idx_taskid ON pptaiagent(taskid);
+```
+
+### 3. 部署步骤
 
 ```bash
+# 1. 安装依赖
 npm install
-# or
-yarn install
-# or
-pnpm install
-# or
-bun install
+
+# 2. 登录 Cloudflare
+npx wrangler login
+
+# 3. 部署
+npm run deploy
 ```
 
-Then run the development server (using the package manager of your choice):
+### 4. 绑定资源
+
+在 Cloudflare Workers 控制台手动绑定：
+- D1 数据库 (binding: D1)
+- R2 存储桶 (binding: R2)
+
+## 项目结构
+
+```
+src/
+├── handlers/          # 请求处理器
+│   ├── api.ts         # API 路由处理
+│   ├── auth.ts        # 认证处理
+│   ├── upload.ts      # 文件上传处理
+│   ├── tasks.ts       # 任务管理
+│   └── download.ts    # 文件下载处理
+├── utils/             # 工具函数
+│   ├── response.ts    # 响应工具
+│   ├── i18n.ts        # 国际化配置
+│   └── helpers.ts     # 辅助函数
+├── types/             # 类型定义
+│   └── index.ts
+├── templates/         # HTML模板
+│   └── html.ts
+└── index.ts           # 主入口
+```
+
+## 本地开发
 
 ```bash
+# 启动开发服务器
 npm run dev
+
+# 构建项目
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## API 接口
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 上传文件
+```
+POST /api/upload?access_key=xxx
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+### 获取任务列表
+```
+GET /api/tasks?userid=xxx&access_key=xxx
+```
 
-## Deploying To Production
+### 下载文件
+```
+GET /api/download?task_id=xxx&access_key=xxx
+```
 
-| Command                           | Action                                       |
-| :-------------------------------- | :------------------------------------------- |
-| `npm run build`                   | Build your production site                   |
-| `npm run preview`                 | Preview your build locally, before deploying |
-| `npm run build && npm run deploy` | Deploy your production site to Cloudflare    |
+### 删除任务
+```
+DELETE /api/delete?task_id=xxx&userid=xxx&access_key=xxx
+```
 
-## Learn More
+## 许可证
 
-To learn more about Next.js, take a look at the following resources:
+© 2025 Endless AI LLC. 版权所有
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 部署说明
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+1. **准备工作**：
+   - 确保已安装 Node.js 和 npm
+   - 安装 Wrangler CLI: `npm install -g wrangler`
+
+2. **配置环境**：
+   ```bash
+   # 克隆项目
+   git clone <your-repo-url>
+   cd docagent
+   
+   # 安装依赖
+   npm install
+   
+   # 登录 Cloudflare
+   npx wrangler login
+   ```
+
+3. **设置资源**：
+    - 创建 D1 数据库
+    - 创建 R2 存储桶
+    - 在 `wrangler.toml` 中更新相应的 ID
+
+4. **部署**：
+   ```bash
+   npm run deploy
+   ```
+
+5. **配置环境变量**：
+   在 Cloudflare Workers 控制台设置所需的环境变量
+
+这个重构后的项目保持了原有的所有功能，但代码结构更清晰，更易于维护和扩展。每个模块都有明确的职责，类型定义完善，便于后续开发和调试。

@@ -1,0 +1,25 @@
+name = "docagent"
+main = "src/index.ts"
+compatibility_date = "2024-11-06"
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command = "npm run build"
+
+[vars]
+# 在 Cloudflare Workers 控制台设置这些环境变量
+# PPT_AI_AGENT_API_KEY = "your-api-key"
+# ACCESS_KEY = "your-access-key"
+# BUCKET_NAME = "your-bucket-name"
+# R2_ACCESS_KEY = "your-r2-access-key"
+# R2_SECRET_KEY = "your-r2-secret-key"
+# R2_ENDPOINT = "your-r2-endpoint"
+
+[[d1_databases]]
+binding = "D1"
+database_name = "docagent-db"
+database_id = "your-database-id"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "your-bucket-name"
