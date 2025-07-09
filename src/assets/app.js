@@ -165,20 +165,31 @@ function apiUrl(path) {
     return path;
 }
 
-// 🔥 获取用户ID从登录状态
-function getUserId() {
-    if (currentUser && currentUser.user_id) {
-        return currentUser.user_id;
+// 替换原方法，确保准确获取和校验本地存储的登录数据
+function getStoredUser() {
+    const userStr = localStorage.getItem('docagent_user');
+    if(userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            if(user && user.expires_at && user.expires_at > Date.now()) {
+                return user;
+            }
+        } catch(e) {
+            console.error("解析本地存储的用户信息失败:", e);
+        }
     }
     return null;
 }
 
-// 获取用户Token
+// 重新可靠实现
 function getUserToken() {
-    if (currentUser && currentUser.token) {
-        return currentUser.token;
-    }
-    return null;
+    const user = getStoredUser();
+    return user && user.token;
+}
+
+function getUserId() {
+    const user = getStoredUser();
+    return user && user.user_id;
 }
 
 // 翻译函数
@@ -797,22 +808,34 @@ function initEventListeners() {
 async function generateDocument() {
     console.log('🔥 生成文档开始');
 
-    // 🔑 严格检查登录状态
-    if (!currentUser) {
-        console.log('❌ 用户未登录');
-        showLoginModal();
-        return;
-    }
+    if(!getUserToken()) {
+            console.log('❌ 用户未登录或登录信息过期');
+            showMessage('登录信息已过期，请重新登录', 'error');
+            currentUser = null;
+            localStorage.removeItem('docagent_user');
+            updateUserUI();
+            showLoginModal();
+            return;
+        }
 
-    if (!currentUser.token) {
-        console.log('❌ 用户token缺失');
-        showMessage('登录状态异常，请重新登录', 'error');
-        currentUser = null;
-        localStorage.removeItem('docagent_user');
-        updateUserUI();
-        showLoginModal();
-        return;
-    }
+    /*
+    // 🔑 严格检查登录状态
+        if (!currentUser) {
+            console.log('❌ 用户未登录');
+            showLoginModal();
+            return;
+        }
+    
+        if (!currentUser.token) {
+            console.log('❌ 用户token缺失');
+            showMessage('登录状态异常，请重新登录', 'error');
+            currentUser = null;
+            localStorage.removeItem('docagent_user');
+            updateUserUI();
+            showLoginModal();
+            return;
+        }
+    */
 
     const promptInput = document.getElementById('promptInput');
     const prompt = promptInput ? promptInput.value.trim() : '';
@@ -834,13 +857,7 @@ async function generateDocument() {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
 
-        // 🔥 确保token正确发送
-        console.log('🔥 发送前token检查:', {
-            hasCurrentUser: !!currentUser,
-            hasToken: !!(currentUser && currentUser.token),
-            tokenLength: currentUser && currentUser.token ? currentUser.token.length : 0,
-            tokenPreview: currentUser && currentUser.token ? currentUser.token.substring(0, 20) + '...' : 'null'
-        });
+
 
         formData.append('user_token', getUserToken());
 
