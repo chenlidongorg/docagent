@@ -42,17 +42,16 @@ async function initApp() {
 
     // 初始化UI
     updateLanguage();
-    initFileUpload();
-    initEventListeners();
+
+    // 等待DOM完全准备好后再初始化事件
+    setTimeout(() => {
+        initFileUpload();
+        initEventListeners();
+    }, 100);
 
     // 加载任务列表
     if (currentUser) {
         loadTasks();
-    }
-
-    // 渲染图标
-    if (typeof feather !== 'undefined') {
-        feather.replace();
     }
 
     console.log('应用初始化完成');
@@ -260,11 +259,17 @@ function initFileUpload() {
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
 
-    if (!uploadArea || !fileInput) return;
+    if (!uploadArea || !fileInput) {
+        console.error('上传区域或文件输入元素未找到');
+        return;
+    }
+
+    console.log('初始化文件上传功能');
 
     uploadArea.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('点击上传区域');
         fileInput.click();
     });
 
@@ -295,6 +300,8 @@ function initFileUpload() {
 }
 
 function handleFileSelection(files) {
+    console.log('处理文件选择:', files.length);
+
     files.forEach(file => {
         if (file.size > 50 * 1024 * 1024) {
             showMessage(t('file_too_large'), 'error');
@@ -373,7 +380,7 @@ function showModal(title, content, actions = [], type = 'info') {
         button.className = `btn ${action.className || 'btn-secondary'}`;
         button.textContent = action.text;
         button.type = 'button';
-        button.addEventListener('click', action.onClick);
+        button.onclick = action.onClick;
         modalActions.appendChild(button);
     });
 
@@ -445,63 +452,69 @@ function requireLogin() {
 function initEventListeners() {
     console.log('初始化事件监听器...');
 
+    // 移除所有现有的事件监听器（避免重复绑定）
+    const allButtons = document.querySelectorAll('button');
+    allButtons.forEach(button => {
+        button.replaceWith(button.cloneNode(true));
+    });
+
     // 语言切换
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
-        languageSelect.addEventListener('change', (e) => {
+        languageSelect.addEventListener('change', function(e) {
+            console.log('语言切换:', e.target.value);
             currentLanguage = e.target.value;
             localStorage.setItem('docagent_language', currentLanguage);
             updateLanguage();
         });
     }
 
-    // 登录/退出按钮
+    // 登录按钮
     const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-
     if (loginBtn) {
-        loginBtn.addEventListener('click', (e) => {
+        loginBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
             console.log('登录按钮被点击');
             showLoginModal();
         });
     }
 
+    // 退出按钮
+    const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
+        logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
             console.log('退出按钮被点击');
             handleLogout();
         });
     }
 
-    // 登录表单按钮
+    // 发送验证码按钮
     const sendCodeBtn = document.getElementById('sendCodeBtn');
-    const verifyCodeBtn = document.getElementById('verifyCodeBtn');
-    const backToEmailBtn = document.getElementById('backToEmailBtn');
-
     if (sendCodeBtn) {
-        sendCodeBtn.addEventListener('click', (e) => {
+        sendCodeBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
+            console.log('发送验证码按钮被点击');
             sendVerificationCode();
         });
     }
 
+    // 验证码按钮
+    const verifyCodeBtn = document.getElementById('verifyCodeBtn');
     if (verifyCodeBtn) {
-        verifyCodeBtn.addEventListener('click', (e) => {
+        verifyCodeBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
+            console.log('验证码按钮被点击');
             verifyCode();
         });
     }
 
+    // 返回按钮
+    const backToEmailBtn = document.getElementById('backToEmailBtn');
     if (backToEmailBtn) {
-        backToEmailBtn.addEventListener('click', (e) => {
+        backToEmailBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
+            console.log('返回按钮被点击');
             document.getElementById('emailStep').classList.remove('hidden');
             document.getElementById('codeStep').classList.add('hidden');
         });
@@ -510,9 +523,8 @@ function initEventListeners() {
     // 生成文档按钮
     const generateBtn = document.getElementById('generateBtn');
     if (generateBtn) {
-        generateBtn.addEventListener('click', (e) => {
+        generateBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
             console.log('生成按钮被点击');
             generateDocument();
         });
@@ -521,9 +533,8 @@ function initEventListeners() {
     // 刷新按钮
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', (e) => {
+        refreshBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
             console.log('刷新按钮被点击');
             loadTasks(true);
         });
@@ -532,23 +543,24 @@ function initEventListeners() {
     // 加载更多按钮
     const loadMoreBtn = document.getElementById('loadMoreBtn');
     if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', (e) => {
+        loadMoreBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
+            console.log('加载更多按钮被点击');
             currentPage++;
             loadTasks();
         });
     }
 
-    // 模态框关闭
-    document.addEventListener('click', (e) => {
+    // 模态框背景点击关闭
+    document.addEventListener('click', function(e) {
         if (e.target.classList.contains('modal')) {
+            console.log('点击模态框背景关闭');
             e.target.classList.remove('show');
         }
     });
 
     // 键盘事件
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeGenericModal();
             closeLoginModal();
@@ -560,7 +572,7 @@ function initEventListeners() {
     const loginCode = document.getElementById('loginCode');
 
     if (loginEmail) {
-        loginEmail.addEventListener('keypress', (e) => {
+        loginEmail.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 sendVerificationCode();
@@ -569,7 +581,7 @@ function initEventListeners() {
     }
 
     if (loginCode) {
-        loginCode.addEventListener('keypress', (e) => {
+        loginCode.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 verifyCode();
