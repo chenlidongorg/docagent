@@ -16,8 +16,8 @@ export async function handleAssets(request: Request, env: CloudflareEnv): Promis
   }
 
   if (path === '/assets/app.js') {
-    const js = await getAppJS();
-    return new Response(js, {
+    const js = await import('./app.js');
+    return new Response(js.default, {
       headers: {
         'Content-Type': 'application/javascript',
         'Cache-Control': 'public, max-age=3600'
@@ -949,7 +949,6 @@ console.log('JavaScript 文件加载完成');
 }
 
 async function handleLogo(env: CloudflareEnv): Promise<Response> {
-  // 创建一个简单的 SVG logo
   const svg = `
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="40" height="40" rx="20" fill="#ff6b35"/>

@@ -1,3 +1,4 @@
+export default `
 // 全局变量
 let currentLanguage = 'zh';
 let selectedFiles = [];
@@ -1034,3 +1035,4 @@ window.editNote = editNote;
 
 // DOM加载完成后初始化
 document.addEventListener('DOMContentLoaded', initApp);
+`;
