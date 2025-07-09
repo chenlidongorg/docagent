@@ -1,21 +1,27 @@
-// ========== src/handlers/tasks.ts ==========
-import { CloudflareEnv, TaskStatus, TaskStatusType } from '../types';
-import { createErrorResponse, createSuccessResponse } from '../utils/response';
-import { updateTaskStatus, updateTaskWithFilename } from '../utils/helpers';
-
+// ========== src/handlers/tasks.ts - 部分修改 ==========
 export async function handleTasks(
   request: Request,
   env: CloudflareEnv,
   ctx: ExecutionContext
 ): Promise<Response> {
   const url = new URL(request.url);
-  const userId = url.searchParams.get('userid'); // 这里应该是登录系统的user_id
+  const userId = url.searchParams.get('userid');
+  const page = parseInt(url.searchParams.get('page') || '1');
+  const limit = parseInt(url.searchParams.get('limit') || '10');
+  const offset = (page - 1) * limit;
 
+  // 🔥 如果没有userid，返回空列表而不是错误
   if (!userId) {
-    return createErrorResponse('Missing userid parameter', 400);
+    return createSuccessResponse({
+      tasks: [],
+      total: 0,
+      page: page,
+      limit: limit,
+      has_more: false
+    });
   }
 
-
+  // 其余代码保持不变...
   try {
     // 获取总数
     const countStmt = env.D1.prepare('SELECT COUNT(*) as total FROM pptaiagent WHERE userid = ? AND hasdeleted = 0');
@@ -160,90 +166,44 @@ export async function handleTasks(
   }
 }
 
-export async function handleUpdateNote(
-  request: Request,
-  env: CloudflareEnv
-): Promise<Response> {
-  if (request.method !== 'PUT') {
-    return createErrorResponse('Method not allowed', 405);
-  }
-
-  try {
-    const { task_id, note, userid } = await request.json();
-
-    if (!task_id || !userid) {
-      return createErrorResponse('Missing required parameters', 400);
-    }
-
-    const stmt = env.D1.prepare(`
-      UPDATE pptaiagent
-      SET note = ?
-      WHERE taskid = ? AND userid = ? AND hasdeleted = 0
-    `);
-    await stmt.bind(note || '无备注', task_id, userid).run();
-
-    return createSuccessResponse({ message: 'Note updated successfully' });
-
-  } catch (error) {
-    return createErrorResponse('Failed to update note', 500);
-  }
-}
-
-export async function handleDelete(
-  request: Request,
-  env: CloudflareEnv
-): Promise<Response> {
-  if (request.method !== 'DELETE') {
-    return createErrorResponse('Method not allowed', 405);
-  }
-
-  try {
-    const url = new URL(request.url);
-    const taskId = url.searchParams.get('task_id');
-    const userid = url.searchParams.get('userid');
-
-    if (!taskId || !userid) {
-      return createErrorResponse('Missing required parameters', 400);
-    }
-
-    const deleteStmt = env.D1.prepare('UPDATE pptaiagent SET hasdeleted = 1 WHERE taskid = ? AND userid = ?');
-    await deleteStmt.bind(taskId, userid).run();
-
-    return createSuccessResponse({ message: 'File deleted successfully' });
-
-  } catch (error) {
-    return createErrorResponse('Failed to delete file', 500);
-  }
-}
-
-export async function handleStatus(
+// 🔥 修改其他需要userid的API，都采用类似处理
+export async function handleHasPending(
   request: Request,
   env: CloudflareEnv
 ): Promise<Response> {
   const url = new URL(request.url);
-  const taskId = url.searchParams.get('task_id');
+  const userId = url.searchParams.get('userid');
 
-  if (!taskId) {
-    return createErrorResponse('Missing task_id parameter', 400);
+  // 🔥 如果没有userid，返回false而不是错误
+  if (!userId) {
+    return createSuccessResponse({
+      has_pending: false,
+      pending_count: 0
+    });
   }
 
   try {
-    const response = await fetch(`https://docapi.endlessai.org/api/v1/tasks/${taskId}`, {
-      headers: {
-        'X-API-Key': env.PPT_AI_AGENT_API_KEY
-      }
+    const stmt = env.D1.prepare(`
+      SELECT COUNT(*) as count FROM pptaiagent
+      WHERE userid = ?
+      AND hasdeleted = 0
+      AND (filename = '' OR filename IS NULL)
+      AND (
+        note NOT LIKE '%失败%' AND
+        note NOT LIKE '%超时%' AND
+        note NOT LIKE '%Failed%' AND
+        note NOT LIKE '%Error%'
+      )
+    `);
+    const result = await stmt.bind(userId).first();
+
+    return createSuccessResponse({
+      has_pending: (result?.count as number || 0) > 0,
+      pending_count: result?.count as number || 0
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return createErrorResponse(`Failed to get task status: ${response.status}`, response.status);
-    }
-
-    const result = await response.json();
-    return createSuccessResponse(result);
-
   } catch (error) {
-    return createErrorResponse('Failed to check task status', 500);
+    return createErrorResponse('Failed to check pending tasks', 500);
   }
 }
 
@@ -255,10 +215,16 @@ export async function handleCheckPending(
   const url = new URL(request.url);
   const userId = url.searchParams.get('userid');
 
+  // 🔥 如果没有userid，返回空结果而不是错误
   if (!userId) {
-    return createErrorResponse('Missing userid parameter', 400);
+    return createSuccessResponse({
+      message: 'No user specified',
+      checked_tasks: 0,
+      updated_tasks: 0
+    });
   }
 
+  // 其余代码保持不变...
   try {
     const stmt = env.D1.prepare(`
       SELECT taskid, note FROM pptaiagent
@@ -303,123 +269,5 @@ export async function handleCheckPending(
 
   } catch (error) {
     return createErrorResponse('Failed to check pending tasks', 500);
-  }
-}
-
-async function checkAndUpdateSingleTask(env: CloudflareEnv, task: any, userId: string): Promise<boolean> {
-  try {
-    const response = await fetch(`https://docapi.endlessai.org/api/v1/tasks/${task.taskid}`, {
-      headers: {
-        'X-API-Key': env.PPT_AI_AGENT_API_KEY
-      }
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-
-      if (result.status === 'completed' && result.result_url) {
-        await updateTaskWithFilename(env, task.taskid, userId, result.result_url, result.note || 'AI生成完成');
-        return true;
-      } else if (result.status === 'failed') {
-        await updateTaskStatus(env, task.taskid, userId, '任务处理失败', result.status);
-        return true;
-      } else if (result.note && result.note !== task.note) {
-        await updateTaskStatus(env, task.taskid, userId, result.note, result.status);
-        return true;
-      }
-    }
-
-    return false;
-
-  } catch (error) {
-    return false;
-  }
-}
-
-export async function handleHasPending(
-  request: Request,
-  env: CloudflareEnv
-): Promise<Response> {
-  const url = new URL(request.url);
-  const userId = url.searchParams.get('userid');
-
-  if (!userId) {
-    return createErrorResponse('Missing userid parameter', 400);
-  }
-
-  try {
-    const stmt = env.D1.prepare(`
-      SELECT COUNT(*) as count FROM pptaiagent
-      WHERE userid = ?
-      AND hasdeleted = 0
-      AND (filename = '' OR filename IS NULL)
-      AND (
-        note NOT LIKE '%失败%' AND
-        note NOT LIKE '%超时%' AND
-        note NOT LIKE '%Failed%' AND
-        note NOT LIKE '%Error%'
-      )
-    `);
-    const result = await stmt.bind(userId).first();
-
-    return createSuccessResponse({
-      has_pending: (result?.count as number || 0) > 0,
-      pending_count: result?.count as number || 0
-    });
-
-  } catch (error) {
-    return createErrorResponse('Failed to check pending tasks', 500);
-  }
-}
-
-export async function handleCleanupTask(
-  request: Request,
-  env: CloudflareEnv
-): Promise<Response> {
-  if (request.method !== 'POST') {
-    return createErrorResponse('Method not allowed', 405);
-  }
-
-  try {
-    const { task_id, userid } = await request.json();
-
-    if (!task_id || !userid) {
-      return createErrorResponse('Missing required parameters', 400);
-    }
-
-    const stmt = env.D1.prepare('SELECT taskid, filename FROM pptaiagent WHERE taskid = ? AND userid = ? AND hasdeleted = 0');
-    const taskInfo = await stmt.bind(task_id, userid).first();
-
-    if (!taskInfo) {
-      return createErrorResponse('Task not found', 404);
-    }
-
-    if (!taskInfo.filename || (taskInfo.filename as string).trim() === '') {
-      return createErrorResponse('Task not completed yet', 400);
-    }
-
-    try {
-      const response = await fetch(`https://docapi.endlessai.org/api/v1/tasks/${task_id}/cleanup`, {
-        method: 'DELETE',
-        headers: {
-          'X-API-Key': env.PPT_AI_AGENT_API_KEY
-        }
-      });
-
-      return createSuccessResponse({
-        message: 'Task cleanup requested',
-        server_cleanup_success: response.ok
-      });
-
-    } catch (error) {
-      return createSuccessResponse({
-        message: 'Task cleanup requested (server cleanup failed)',
-        server_cleanup_success: false,
-        error: (error as Error).message
-      });
-    }
-
-  } catch (error) {
-    return createErrorResponse('Cleanup failed', 500);
   }
 }

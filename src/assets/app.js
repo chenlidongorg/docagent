@@ -159,20 +159,21 @@ const i18nConfig = {
     }
 };
 
-// 辅助函数：为 API 路径添加 access_key
+// 辅助函数：为 API 路径添加 access_key（如果存在）
 function apiUrl(path) {
     const accessKey = getAccessKey();
+    // 🔥 修改：如果没有access_key，直接返回原路径
     if (!accessKey) return path;
     const separator = path.includes('?') ? '&' : '?';
     return path + separator + 'access_key=' + encodeURIComponent(accessKey);
 }
 
-// 获取访问密钥
+// 获取访问密钥（可选）
 function getAccessKey() {
     return new URLSearchParams(window.location.search).get('access_key');
 }
 
-// 修改获取用户ID函数 - 使用token作为userid
+// 🔥 修改：获取用户ID现在是可选的
 function getUserId() {
     // 🔑 优先使用登录用户的user_id
     if (currentUser && currentUser.user_id) {
@@ -181,6 +182,7 @@ function getUserId() {
     // fallback 到 URL 参数（兼容性）
     return new URLSearchParams(window.location.search).get('userid');
 }
+
 
 // 🔑 新增获取用户Token函数
 function getUserToken() {
@@ -204,26 +206,26 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initApp() {
     console.log('初始化应用...');
 
-    // 检查访问权限
-    if (!getAccessKey()) {
-        document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供访问密钥</h2></div>';
-        return;
-    }
+    // 🔥 移除访问权限检查
+    // if (!getAccessKey()) {
+    //     document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供访问密钥</h2></div>';
+    //     return;
+    // }
 
     // 加载用户信息
     loadUserFromStorage();
 
-    // 🔑 如果没有登录用户，要求登录
-    if (!currentUser) {
-        updateUserUI();
-        updateLanguage();
-        setTimeout(() => {
-            initFileUpload();
-            initEventListeners();
-        }, 100);
-        showLoginModal();
-        return;
-    }
+    // 🔥 修改：即使没有登录用户也可以正常初始化UI
+    // if (!currentUser) {
+    //     updateUserUI();
+    //     updateLanguage();
+    //     setTimeout(() => {
+    //         initFileUpload();
+    //         initEventListeners();
+    //     }, 100);
+    //     showLoginModal();
+    //     return;
+    // }
 
     // 使用内置的国际化配置
     i18nData = i18nConfig;
@@ -247,6 +249,10 @@ async function initApp() {
         // 🔑 只有登录用户才加载任务列表
         if (currentUser && currentUser.user_id) {
             loadTasks();
+        } else {
+            // 🔥 新增：未登录时显示空列表状态
+            const noTasks = document.getElementById('noTasks');
+            if (noTasks) noTasks.classList.remove('hidden');
         }
 
         // 启动智能轮询
@@ -1147,6 +1153,7 @@ function stopPolling() {
 
 // 🔥 修改智能轮询函数
 function startSmartPolling() {
+    // 🔥 如果没有登录用户，不启动轮询
     if (!currentUser) return;
 
     console.log('启动智能轮询系统');
@@ -1158,6 +1165,7 @@ function startSmartPolling() {
 
     pendingCheckTimer = setInterval(async () => {
         const userId = getUserId();
+        // 🔥 如果没有userId或没有登录用户，跳过
         if (!userId || !currentUser) return;
 
         try {

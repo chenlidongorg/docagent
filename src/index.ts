@@ -23,19 +23,16 @@ export default {
       return handleAssets(request, env);
     }
 
-    // 检查访问权限
-    const authError = checkAccess(request, env);
-    if (authError) {
-      return authError;
-    }
+    // 🔥 移除访问权限检查，直接进入路由处理
+    // const authError = checkAccess(request, env);
+    // if (authError) {
+    //   return authError;
+    // }
 
     // 路由处理
     switch (path) {
       case '/':
-        const accessKey = url.searchParams.get('access_key');
-        if (!accessKey) {
-          return handleUnauthorizedPage();
-        }
+        // 🔥 直接返回页面，不检查access_key
         return new Response(generateHTML(), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
         });
