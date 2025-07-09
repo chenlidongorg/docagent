@@ -210,8 +210,11 @@ async function initApp() {
         languageSelect.value = currentLanguage;
     }
 
-    updateUserUI();  // 这里会调用updateTokenDebugInfo()
-    updateLanguage();
+    // 🔥 延迟更新UI，确保DOM完全加载
+    setTimeout(() => {
+        updateUserUI();  // 这里会调用updateTokenDebugInfo()
+        updateLanguage();
+    }, 200);
 
     // 等待DOM完全准备好后再初始化事件
     setTimeout(() => {
@@ -227,7 +230,10 @@ async function initApp() {
             const noTasks = document.getElementById('noTasks');
             if (noTasks) noTasks.classList.remove('hidden');
         }
-    }, 100);
+
+        // 🔥 最后再次更新token显示
+        updateTokenDebugInfo();
+    }, 500);
 
     console.log('应用初始化完成');
 }
@@ -270,17 +276,40 @@ function loadUserFromStorage() {
 }
 
 // 🔥 添加更新Token显示的函数
+// 🔥 添加更新Token显示的函数
 function updateTokenDebugInfo() {
     const tokenStatus = document.getElementById('tokenStatus');
     const tokenValue = document.getElementById('tokenValue');
     const userIdStatus = document.getElementById('userIdStatus');
 
-    if (!tokenStatus || !tokenValue || !userIdStatus) return;
+    // 🔥 添加元素存在检查
+    if (!tokenStatus || !tokenValue || !userIdStatus) {
+        console.log('调试信息元素未找到，稍后重试...');
+        return;
+    }
+
+    console.log('🔥 更新Token调试信息:', {
+        hasCurrentUser: !!currentUser,
+        hasToken: !!(currentUser && currentUser.token),
+        hasUserId: !!(currentUser && currentUser.user_id)
+    });
 
     if (currentUser && currentUser.token) {
         tokenStatus.textContent = 'Token状态: 已获取';
         tokenValue.textContent = `Token值: ${currentUser.token.substring(0, 30)}...`;
         userIdStatus.textContent = `用户ID: ${currentUser.user_id || '未解析'}`;
+
+        // 🔥 添加token有效性检查
+        try {
+            const tokenParts = currentUser.token.split('.');
+            if (tokenParts.length === 3) {
+                tokenStatus.textContent = 'Token状态: 已获取 (JWT格式)';
+            } else {
+                tokenStatus.textContent = 'Token状态: 已获取 (普通格式)';
+            }
+        } catch (e) {
+            tokenStatus.textContent = 'Token状态: 已获取 (格式未知)';
+        }
     } else {
         tokenStatus.textContent = 'Token状态: 未登录';
         tokenValue.textContent = 'Token值: 无';
@@ -295,6 +324,11 @@ function updateUserUI() {
     const userInfo = document.getElementById('userInfo');
     const userAvatar = document.getElementById('userAvatar');
     const userEmail = document.getElementById('userEmail');
+
+    console.log('🔥 更新用户UI:', {
+        hasCurrentUser: !!currentUser,
+        userEmail: currentUser?.email
+    });
 
     if (currentUser) {
         if (loginBtn) loginBtn.classList.add('hidden');
@@ -312,8 +346,10 @@ function updateUserUI() {
         if (userInfo) userInfo.classList.add('hidden');
     }
 
-    // 🔥 更新token显示
-    updateTokenDebugInfo();
+    // 🔥 延迟更新token显示，确保DOM元素已经准备好
+    setTimeout(() => {
+        updateTokenDebugInfo();
+    }, 100);
 }
 
 // 登录相关函数
@@ -402,7 +438,14 @@ async function verifyCode() {
             const saved = localStorage.getItem('docagent_user');
             console.log('保存验证:', saved ? '成功' : '失败');
 
+            // 🔥 立即更新UI和token显示
             updateUserUI();
+
+            // 🔥 再次确保token显示更新
+            setTimeout(() => {
+                updateTokenDebugInfo();
+            }, 100);
+
             closeLoginModal();
             showMessage(t('login_success'), 'success');
 
@@ -421,6 +464,28 @@ async function verifyCode() {
         verifyBtn.disabled = false;
         verifyBtn.textContent = originalText;
     }
+}
+
+// 🔥 添加定时检查token显示的函数
+function startTokenDisplayCheck() {
+    const checkInterval = setInterval(() => {
+        const tokenStatus = document.getElementById('tokenStatus');
+
+        if (tokenStatus && tokenStatus.textContent === 'Token状态: 检查中...') {
+            console.log('检测到token显示未更新，手动更新...');
+            updateTokenDebugInfo();
+        }
+
+        // 如果已经显示了正确的信息，停止检查
+        if (tokenStatus && !tokenStatus.textContent.includes('检查中')) {
+            clearInterval(checkInterval);
+        }
+    }, 1000);
+
+    // 10秒后无论如何都停止检查
+    setTimeout(() => {
+        clearInterval(checkInterval);
+    }, 10000);
 }
 
 async function handleLogout() {
@@ -753,6 +818,17 @@ function initEventListeners() {
             loadTasks();
         });
     }
+
+// 🔥 在DOMContentLoaded事件中启动检查
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM加载完成，开始初始化...');
+    initApp();
+
+    // 🔥 启动token显示检查
+    setTimeout(() => {
+        startTokenDisplayCheck();
+    }, 1000);
+});
 
     // 模态框背景点击关闭
     document.addEventListener('click', function(e) {
