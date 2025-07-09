@@ -1,3 +1,8 @@
+// ========== src/handlers/upload.ts ==========
+import { CloudflareEnv, FileData, UploadRequest } from '../types';
+import { createErrorResponse, createSuccessResponse } from '../utils/response';
+import { arrayBufferToBase64 } from '../utils/helpers';
+
 export async function handleUpload(
   request: Request,
   env: CloudflareEnv,
@@ -16,29 +21,16 @@ export async function handleUpload(
     const userToken = formData.get('user_token') as string;
     const userId = formData.get('user_id') as string;
 
-    console.log('📤 收到上传请求:', {
+    console.log('上传请求验证:', {
       hasToken: !!userToken,
       hasUserId: !!userId,
       tokenLength: userToken ? userToken.length : 0,
-      userId: userId,
-      promptLength: userPrompt.length,
-      formDataKeys: Array.from(formData.keys())
+      userId: userId
     });
 
-    if (!userToken) {
-      console.log('❌ 认证失败: 缺少user_token');
-      return createErrorResponse('缺少用户Token，请重新登录', 400);
-    }
-
-    if (!userId) {
-      console.log('❌ 认证失败: 缺少user_id');
-      return createErrorResponse('缺少用户ID，请重新登录', 400);
-    }
-
-    // 🔥 可选：验证token格式（如果你知道token的基本格式）
-    if (userToken.length < 10) {
-      console.log('❌ Token格式异常:', userToken.length);
-      return createErrorResponse('Token格式异常，请重新登录', 400);
+    if (!userToken || !userId) {
+      console.log('认证失败: 缺少token或userId');
+      return createErrorResponse('缺少用户认证信息，请重新登录', 401);
     }
 
     // 处理上传的文件
@@ -61,7 +53,7 @@ export async function handleUpload(
 
           fileCount++;
         } catch (error) {
-          console.log('❌ 文件处理错误:', error);
+          console.log('文件处理错误:', error);
           return createErrorResponse('文件处理失败', 400);
         }
       }
@@ -78,62 +70,107 @@ export async function handleUpload(
     const requestBody: UploadRequest = {
       files: files,
       user_prompt: userPrompt,
-      user_token: userToken, // 🔑 发送加密token
-      user_id: userId,       // 🔑 用于标识用户
-      constraints: {
-        max_slides: 20,
-        include_animations: true,
-        language: 'auto'
-      },
-      storage: {
-        type: 'r2',
-        bucket: env.BUCKET_NAME,
-        access_key: env.R2_ACCESS_KEY,
-        secret_key: env.R2_SECRET_KEY,
-        endpoint: env.R2_ENDPOINT
-      }
+      user_id: userToken       // 🔑 发送加密token，里面包含了user_id，对方服务器会自己解析，此备注不要修改
     };
 
-    console.log('📡 发送到智能体的请求:', {
+    console.log('发送到智能体的请求:', {
       fileCount: files.length,
       promptLength: userPrompt.length,
       hasToken: !!userToken,
-      tokenLength: userToken.length,
       userId: userId
     });
 
-    const response = await fetch('https://docapi.endlessai.org/api/v1/ppt/generate', {
-      method: 'POST',
-      headers: {
-        'X-API-Key': env.PPT_AI_AGENT_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
+    // 🔥 增加超时和错误处理
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
 
-    let result;
+    let response: Response;
     try {
-      result = await response.json();
-    } catch (jsonError) {
-      console.log('❌ 解析响应失败:', jsonError);
-      return createErrorResponse('服务器响应格式错误', 500);
-    }
+      response = await fetch('https://docapi.endlessai.org/api/v1/ppt/generate', {
+        method: 'POST',
+        headers: {
+          'X-API-Key': env.PPT_AI_AGENT_API_KEY,
+          'Content-Type': 'application/json',
+          'User-Agent': 'DocAgent/1.0'
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.log('网络请求失败:', fetchError);
 
-    console.log('📨 智能体响应:', {
-      status: response.status,
-      success: result.success,
-      error: result.error,
-      message: result.message
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return createErrorResponse('请求过于频繁，请稍后再试', 429);
+      if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
+        return createErrorResponse('请求超时，请稍后重试', 408);
       }
 
-      const errorMessage = result.message || result.error || `服务器错误 (${response.status})`;
-      console.log('❌ 智能体返回错误:', errorMessage);
+      return createErrorResponse('无法连接到服务器，请检查网络连接', 503);
+    }
+
+    clearTimeout(timeoutId);
+
+    console.log('智能体响应状态:', response.status);
+
+    // 🔥 增强的响应处理
+    let result: any;
+    const responseText = await response.text();
+
+    // 检查响应是否为HTML（通常是错误页面）
+    if (responseText.trim().startsWith('<')) {
+      console.log('收到HTML响应，可能是服务器错误页面');
+      return createErrorResponse('服务器内部错误，请稍后重试', 500);
+    }
+
+    // 尝试解析JSON
+    try {
+      result = JSON.parse(responseText);
+    } catch (jsonError) {
+      console.log('JSON解析失败:', jsonError);
+      console.log('响应内容:', responseText.substring(0, 200));
+      return createErrorResponse('服务器返回了无效的响应格式', 500);
+    }
+
+    console.log('智能体响应:', {
+      status: response.status,
+      success: result.success,
+      error: result.error
+    });
+
+    // 🔥 详细的状态码处理
+    if (!response.ok) {
+      let errorMessage = '服务器错误';
+
+      switch (response.status) {
+        case 400:
+          errorMessage = result.message || '请求参数错误';
+          break;
+        case 401:
+          errorMessage = '认证失败，请重新登录';
+          break;
+        case 403:
+          errorMessage = '权限不足';
+          break;
+        case 429:
+          errorMessage = '请求过于频繁，请稍后再试';
+          break;
+        case 500:
+          errorMessage = '服务器内部错误，请稍后重试';
+          break;
+        case 502:
+        case 503:
+          errorMessage = '服务暂时不可用，请稍后重试';
+          break;
+        default:
+          errorMessage = result.message || result.error || `服务器错误 (${response.status})`;
+      }
+
       return createErrorResponse(errorMessage, response.status);
+    }
+
+    // 🔥 检查业务逻辑错误
+    if (!result.success) {
+      const errorMessage = result.message || result.error || '任务创建失败';
+      return createErrorResponse(errorMessage, 400);
     }
 
     // 🔥 关键修改：保存任务时使用登录系统的user_id
@@ -150,9 +187,10 @@ export async function handleUpload(
           Date.now()
         ).run();
 
-        console.log('✅ 任务保存成功:', result.task_id);
+        console.log('任务保存成功:', result.task_id);
       } catch (dbError) {
         console.log('⚠️ 数据库保存错误:', dbError);
+        // 数据库错误不阻止返回成功结果
       }
     }
 
@@ -170,7 +208,20 @@ export async function handleUpload(
     return createSuccessResponse(enhancedResult);
 
   } catch (error) {
-    console.log('❌ 上传处理异常:', error);
-    return createErrorResponse('网络连接失败，请重试', 500);
+    console.log('上传处理异常:', error);
+
+    // 🔥 增强的错误分类
+    let errorMessage = '处理请求时发生错误';
+    let statusCode = 500;
+
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      errorMessage = '网络连接失败，请检查网络连接';
+      statusCode = 503;
+    } else if (error instanceof SyntaxError) {
+      errorMessage = '数据格式错误';
+      statusCode = 400;
+    }
+
+    return createErrorResponse(errorMessage, statusCode);
   }
 }

@@ -779,18 +779,11 @@ function initEventListeners() {
 }
 
 // 🔥 修改任务管理方法 - 确保正确发送用户信息
+// 在 generateDocument 函数中找到这部分并替换：
+
 async function generateDocument() {
-
-    //强制重新加载用户信息
-    if (!currentUser) {
-        loadUserFromStorage();
-        console.log('重新加载后的currentUser:', currentUser);
-    }
-
-    
     // 🔑 检查登录状态
     if (!currentUser || !currentUser.token) {
-        console.log('用户未登录，显示登录对话框');
         showLoginModal();
         return;
     }
@@ -815,36 +808,13 @@ async function generateDocument() {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
 
-        // 🔑 关键修改：确保正确获取并发送用户信息
-        const userToken = getUserToken();
-        const userId = getUserId();
-
-        console.log('准备发送的认证信息:', {
-            hasCurrentUser: !!currentUser,
-            hasToken: !!userToken,
-            hasUserId: !!userId,
-            tokenLength: userToken ? userToken.length : 0,
-            userId: userId,
-            email: currentUser ? currentUser.email : 'null'
-        });
-
-        if (!userToken || !userId) {
-            console.error('认证信息缺失:', { userToken: !!userToken, userId: !!userId });
-            showMessage('认证信息已过期，请重新登录', 'error');
-            // 清除过期的用户信息并显示登录界面
-            currentUser = null;
-            localStorage.removeItem('docagent_user');
-            updateUserUI();
-            showLoginModal();
-            return;
-        }
-
-        formData.append('user_token', userToken);
-        formData.append('user_id', userId);
+        // 🔑 关键修改：发送token和user_id
+        formData.append('user_token', currentUser.token);
+        formData.append('user_id', currentUser.user_id);
 
         console.log('发送的用户信息:', {
-            user_token: userToken ? '有token(' + userToken.length + '字符)' : '无token',
-            user_id: userId,
+            user_token: currentUser.token ? '有token' : '无token',
+            user_id: currentUser.user_id,
             file_count: selectedFiles.length
         });
 
@@ -852,19 +822,28 @@ async function generateDocument() {
             formData.append('file_' + index, file);
         });
 
-        const response = await fetch(apiUrl('/api/upload'), {
+        const response = await fetch('/api/upload', {
             method: 'POST',
             body: formData
         });
 
-        const result = await response.json();
+        // 🔥 增强的响应处理
+        let result;
+        const responseText = await response.text();
 
-        console.log('服务器响应:', {
-            status: response.status,
-            success: result.success,
-            error: result.error,
-            message: result.message
-        });
+        // 检查是否收到HTML错误页面
+        if (responseText.trim().startsWith('<')) {
+            console.error('收到HTML响应而非JSON:', responseText.substring(0, 200));
+            throw new Error('服务器返回了错误页面，请稍后重试');
+        }
+
+        try {
+            result = JSON.parse(responseText);
+        } catch (jsonError) {
+            console.error('JSON解析失败:', jsonError);
+            console.error('响应内容:', responseText.substring(0, 200));
+            throw new Error('服务器响应格式错误');
+        }
 
         if (result.success) {
             showTaskSubmittedSuccess(result.task_id);
@@ -874,16 +853,44 @@ async function generateDocument() {
             // 立即刷新任务列表
             setTimeout(() => loadTasks(true), 1000);
         } else {
+            // 🔥 详细的错误处理
+            let errorMessage = result.error || result.message || t('upload_failed');
+
             if (result.error === 'COOLDOWN_ACTIVE') {
-                showMessage(t('cooldown_wait_hint'), 'warning');
-            } else {
-                showMessage(t('upload_failed') + ': ' + (result.message || result.error), 'error');
+                errorMessage = t('cooldown_wait_hint');
+                showMessage(errorMessage, 'warning');
+            } else if (response.status === 401) {
+                errorMessage = '登录已过期，请重新登录';
+                // 清除本地登录状态
+                currentUser = null;
+                localStorage.removeItem('docagent_user');
+                updateUserUI();
+                showLoginModal();
+                return;
+            } else if (response.status >= 500) {
+                errorMessage = '服务器错误，请稍后重试';
             }
+
+            showMessage(errorMessage, 'error');
         }
 
     } catch (error) {
-        console.error('上传异常:', error);
-        showMessage(t('upload_failed') + ': ' + error.message, 'error');
+        console.error('上传错误:', error);
+
+        // 🔥 更详细的错误分类
+        let errorMessage = t('upload_failed');
+
+        if (error.message.includes('fetch')) {
+            errorMessage = '网络连接失败，请检查网络连接';
+        } else if (error.message.includes('JSON') || error.message.includes('响应格式')) {
+            errorMessage = '服务器响应格式错误，请稍后重试';
+        } else if (error.message.includes('HTML') || error.message.includes('错误页面')) {
+            errorMessage = '服务器内部错误，请稍后重试';
+        } else {
+            errorMessage = error.message || t('upload_failed');
+        }
+
+        showMessage(errorMessage, 'error');
     } finally {
         isUploading = false;
         generateBtn.disabled = false;
