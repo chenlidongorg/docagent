@@ -1069,9 +1069,9 @@ function updateUserUI() {
         if (userInfo) userInfo.classList.remove('hidden');
 
         if (userAvatar && userEmail) {
-            const initial = currentUser.token ? currentUser.token.charAt(0).toUpperCase() : 'U';
+            const initial = currentUser.email ? currentUser.email.charAt(0).toUpperCase() : 'U';
             userAvatar.textContent = initial;
-            userEmail.textContent = currentUser.token || '';
+            userEmail.textContent = currentUser.email || '';
         }
     } else {
         if (loginBtn) loginBtn.classList.remove('hidden');
