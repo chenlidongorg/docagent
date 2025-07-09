@@ -1,7 +1,7 @@
-// ========== src/index.ts ==========
 import { CloudflareEnv } from './types';
 import { createOptionsResponse } from './utils/response';
 import { checkAccess, handleUnauthorizedPage } from './handlers/auth';
+import { handleAssets } from './handlers/assets';
 import { handleUpload } from './handlers/upload';
 import { handleTasks, handleUpdateNote, handleDelete, handleStatus, handleCheckPending, handleHasPending, handleCleanupTask } from './handlers/tasks';
 import { handleDownload, handleDownloadWithData } from './handlers/download';
@@ -16,6 +16,11 @@ export default {
     // 处理 OPTIONS 请求
     if (request.method === 'OPTIONS') {
       return createOptionsResponse();
+    }
+
+    // 处理静态资源
+    if (path.startsWith('/assets/')) {
+      return handleAssets(request, env);
     }
 
     // 检查访问权限

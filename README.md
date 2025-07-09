@@ -70,22 +70,7 @@ npm run deploy
 ## 项目结构
 
 ```
-src/
-├── handlers/          # 请求处理器
-│   ├── api.ts         # API 路由处理
-│   ├── auth.ts        # 认证处理
-│   ├── upload.ts      # 文件上传处理
-│   ├── tasks.ts       # 任务管理
-│   └── download.ts    # 文件下载处理
-├── utils/             # 工具函数
-│   ├── response.ts    # 响应工具
-│   ├── i18n.ts        # 国际化配置
-│   └── helpers.ts     # 辅助函数
-├── types/             # 类型定义
-│   └── index.ts
-├── templates/         # HTML模板
-│   └── html.ts
-└── index.ts           # 主入口
+
 ```
 
 ## 本地开发
