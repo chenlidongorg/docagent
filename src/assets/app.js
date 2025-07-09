@@ -842,7 +842,7 @@ async function generateDocument() {
             tokenPreview: currentUser && currentUser.token ? currentUser.token.substring(0, 20) + '...' : 'null'
         });
 
-        formData.append('user_token', currentUser.token);
+        formData.append('user_token', getUserToken());
 
         // 添加文件
         selectedFiles.forEach((file, index) => {
