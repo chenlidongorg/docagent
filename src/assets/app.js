@@ -159,13 +159,11 @@ const i18nConfig = {
     }
 };
 
-// 🔥 完全移除URL参数依赖的辅助函数
+// 辅助函数
 function apiUrl(path) {
-    // 直接返回路径，不再依赖任何参数
     return path;
 }
 
-// 🔥 获取用户ID从登录状态
 function getUserId() {
     if (currentUser && currentUser.user_id) {
         return currentUser.user_id;
@@ -173,7 +171,6 @@ function getUserId() {
     return null;
 }
 
-// 获取用户Token
 function getUserToken() {
     if (currentUser && currentUser.token) {
         return currentUser.token;
@@ -181,22 +178,17 @@ function getUserToken() {
     return null;
 }
 
-// 翻译函数
 function t(key) {
     return i18nConfig[currentLanguage][key] || key;
 }
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM加载完成，开始初始化...');
     initApp();
 });
 
-// 🔥 修改initApp函数，确保初始化时更新token显示
 async function initApp() {
-    console.log('初始化应用...');
-
-    // 加载用户信息
+    // 优先加载用户信息
     loadUserFromStorage();
 
     // 使用内置的国际化配置
@@ -210,32 +202,25 @@ async function initApp() {
         languageSelect.value = currentLanguage;
     }
 
-    // 🔥 延迟更新UI，确保DOM完全加载
-    setTimeout(() => {
-        updateUserUI();  // 这里会调用updateTokenDebugInfo()
-        updateLanguage();
-    }, 200);
+    // 更新UI
+    updateUserUI();
+    updateLanguage();
 
     // 等待DOM完全准备好后再初始化事件
     setTimeout(() => {
         initFileUpload();
         initEventListeners();
 
-        // 🔥 只有登录用户才加载任务列表
+        // 只有登录用户才加载任务列表
         if (currentUser && currentUser.user_id) {
             loadTasks();
             startSmartPolling();
         } else {
-            // 🔥 未登录时显示空列表状态
+            // 未登录时显示空列表状态
             const noTasks = document.getElementById('noTasks');
             if (noTasks) noTasks.classList.remove('hidden');
         }
-
-        // 🔥 最后再次更新token显示
-        updateTokenDebugInfo();
-    }, 500);
-
-    console.log('应用初始化完成');
+    }, 100);
 }
 
 function updateLanguage() {
@@ -258,77 +243,26 @@ function loadUserFromStorage() {
         try {
             const user = JSON.parse(userStr);
 
-
             if (user.expires_at && user.expires_at > Date.now()) {
                 currentUser = user;
-                console.log('用户登录状态有效');
                 return true;
             } else {
-                console.log('用户登录状态已过期，清除本地数据');
                 localStorage.removeItem('docagent_user');
             }
         } catch (e) {
-            console.error('解析用户数据失败:', e);
             localStorage.removeItem('docagent_user');
         }
     }
+
     return false;
 }
 
-// 🔥 添加更新Token显示的函数
-// 🔥 添加更新Token显示的函数
-function updateTokenDebugInfo() {
-    const tokenStatus = document.getElementById('tokenStatus');
-    const tokenValue = document.getElementById('tokenValue');
-    const userIdStatus = document.getElementById('userIdStatus');
-
-    // 🔥 添加元素存在检查
-    if (!tokenStatus || !tokenValue || !userIdStatus) {
-        console.log('调试信息元素未找到，稍后重试...');
-        return;
-    }
-
-    console.log('🔥 更新Token调试信息:', {
-        hasCurrentUser: !!currentUser,
-        hasToken: !!(currentUser && currentUser.token),
-        hasUserId: !!(currentUser && currentUser.user_id)
-    });
-
-    if (currentUser && currentUser.token) {
-        tokenStatus.textContent = 'Token状态: 已获取';
-        tokenValue.textContent = `Token值: ${currentUser.token.substring(0, 30)}...`;
-        userIdStatus.textContent = `用户ID: ${currentUser.user_id || '未解析'}`;
-
-        // 🔥 添加token有效性检查
-        try {
-            const tokenParts = currentUser.token.split('.');
-            if (tokenParts.length === 3) {
-                tokenStatus.textContent = 'Token状态: 已获取 (JWT格式)';
-            } else {
-                tokenStatus.textContent = 'Token状态: 已获取 (普通格式)';
-            }
-        } catch (e) {
-            tokenStatus.textContent = 'Token状态: 已获取 (格式未知)';
-        }
-    } else {
-        tokenStatus.textContent = 'Token状态: 未登录';
-        tokenValue.textContent = 'Token值: 无';
-        userIdStatus.textContent = '用户ID: 无';
-    }
-}
-
-// 🔥 修改updateUserUI函数，添加token显示更新
 function updateUserUI() {
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const userInfo = document.getElementById('userInfo');
     const userAvatar = document.getElementById('userAvatar');
     const userEmail = document.getElementById('userEmail');
-
-    console.log('🔥 更新用户UI:', {
-        hasCurrentUser: !!currentUser,
-        userEmail: currentUser?.email
-    });
 
     if (currentUser) {
         if (loginBtn) loginBtn.classList.add('hidden');
@@ -345,11 +279,6 @@ function updateUserUI() {
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (userInfo) userInfo.classList.add('hidden');
     }
-
-    // 🔥 延迟更新token显示，确保DOM元素已经准备好
-    setTimeout(() => {
-        updateTokenDebugInfo();
-    }, 100);
 }
 
 // 登录相关函数
@@ -390,7 +319,6 @@ async function sendVerificationCode() {
     }
 }
 
-// 🔥 修改verifyCode函数，确保登录成功后立即更新token显示
 async function verifyCode() {
     const email = document.getElementById('loginEmail').value.trim();
     const code = document.getElementById('loginCode').value.trim();
@@ -413,43 +341,27 @@ async function verifyCode() {
         });
 
         const result = await response.json();
-        console.log('验证码验证响应:', result);
 
         if (result.success) {
             const user = {
                 token: result.data.token,
                 user_id: result.data.user.id,
                 email: result.data.user.email,
-                expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24小时后过期
+                expires_at: Date.now() + (24 * 60 * 60 * 1000)
             };
 
-            console.log('准备保存的用户信息:', {
-                hasToken: !!user.token,
-                tokenLength: user.token ? user.token.length : 0,
-                user_id: user.user_id,
-                email: user.email,
-                expires_at: user.expires_at
-            });
-
+            // 立即设置currentUser
             currentUser = user;
+
+            // 保存到localStorage
             localStorage.setItem('docagent_user', JSON.stringify(user));
 
-            // 验证保存是否成功
-            const saved = localStorage.getItem('docagent_user');
-            console.log('保存验证:', saved ? '成功' : '失败');
-
-            // 🔥 立即更新UI和token显示
+            // 立即更新UI
             updateUserUI();
-
-            // 🔥 再次确保token显示更新
-            setTimeout(() => {
-                updateTokenDebugInfo();
-            }, 100);
-
             closeLoginModal();
             showMessage(t('login_success'), 'success');
 
-            // 🔥 登录成功后立即加载任务并启动轮询
+            // 登录成功后立即加载任务并启动轮询
             setTimeout(() => {
                 loadTasks(true);
                 startSmartPolling();
@@ -458,34 +370,11 @@ async function verifyCode() {
             showMessage(result.message || '验证失败', 'error');
         }
     } catch (error) {
-        console.error('验证码验证异常:', error);
         showMessage('网络错误，请重试', 'error');
     } finally {
         verifyBtn.disabled = false;
         verifyBtn.textContent = originalText;
     }
-}
-
-// 🔥 添加定时检查token显示的函数
-function startTokenDisplayCheck() {
-    const checkInterval = setInterval(() => {
-        const tokenStatus = document.getElementById('tokenStatus');
-
-        if (tokenStatus && tokenStatus.textContent === 'Token状态: 检查中...') {
-            console.log('检测到token显示未更新，手动更新...');
-            updateTokenDebugInfo();
-        }
-
-        // 如果已经显示了正确的信息，停止检查
-        if (tokenStatus && !tokenStatus.textContent.includes('检查中')) {
-            clearInterval(checkInterval);
-        }
-    }, 1000);
-
-    // 10秒后无论如何都停止检查
-    setTimeout(() => {
-        clearInterval(checkInterval);
-    }, 10000);
 }
 
 async function handleLogout() {
@@ -508,7 +397,7 @@ async function handleLogout() {
     updateUserUI();
     showMessage(t('logout_success'), 'success');
 
-    // 🔥 退出登录后停止轮询并清空任务列表
+    // 退出登录后停止轮询并清空任务列表
     stopAllPolling();
 
     const tasksList = document.getElementById('tasksList');
@@ -518,38 +407,28 @@ async function handleLogout() {
     if (noTasks) noTasks.classList.remove('hidden');
 }
 
-// 🔥 修复文件上传相关方法
+// 文件上传相关方法
 function initFileUpload() {
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
 
     if (!uploadArea || !fileInput) {
-        console.error('上传区域或文件输入元素未找到');
         return;
     }
 
-    console.log('初始化文件上传功能');
-
-    // 🔥 修复点击事件 - 点击整个上传区域都能触发文件选择
     uploadArea.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('点击上传区域，触发文件选择');
-
-        // 🔥 直接触发现有的文件输入
         fileInput.click();
     });
 
-    // 🔥 确保原有文件输入框的change事件正确绑定
     fileInput.addEventListener('change', function(e) {
-        console.log('文件选择变更，选中文件数量:', e.target.files.length);
         const files = Array.from(e.target.files);
         if (files.length > 0) {
             handleFileSelection(files);
         }
     });
 
-    // 拖拽事件
     uploadArea.addEventListener('dragover', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -567,37 +446,25 @@ function initFileUpload() {
         e.stopPropagation();
         uploadArea.classList.remove('drag-over');
         const files = Array.from(e.dataTransfer.files);
-        console.log('拖拽文件数量:', files.length);
         if (files.length > 0) {
             handleFileSelection(files);
         }
     });
-
-    console.log('文件上传事件绑定完成');
 }
 
 function handleFileSelection(files) {
-    console.log('处理文件选择:', files.length, '个文件');
-
-    files.forEach((file, index) => {
-        console.log(`文件 ${index + 1}:`, file.name, '大小:', file.size);
-
+    files.forEach((file) => {
         if (file.size > 50 * 1024 * 1024) {
             showMessage(t('file_too_large'), 'error');
             return;
         }
 
-        // 检查是否已存在相同文件
         if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
             selectedFiles.push(file);
-            console.log('添加文件:', file.name);
-        } else {
-            console.log('文件已存在，跳过:', file.name);
         }
     });
 
     updateFileList();
-    console.log('当前选择的文件总数:', selectedFiles.length);
 }
 
 function updateFileList() {
@@ -622,14 +489,12 @@ function updateFileList() {
         </div>
     `).join('');
 
-    // 重新渲染图标
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
 }
 
 function removeFile(index) {
-    console.log('移除文件:', selectedFiles[index].name);
     selectedFiles.splice(index, 1);
     updateFileList();
 }
@@ -670,7 +535,6 @@ function showModal(title, content, actions = [], type = 'info') {
 
     modal.classList.add('show');
 
-    // 重新渲染图标
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
@@ -733,8 +597,6 @@ function requireLogin() {
 
 // 事件监听器初始化
 function initEventListeners() {
-    console.log('初始化事件监听器');
-
     // 语言切换
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
@@ -819,17 +681,6 @@ function initEventListeners() {
         });
     }
 
-// 🔥 在DOMContentLoaded事件中启动检查
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM加载完成，开始初始化...');
-    initApp();
-
-    // 🔥 启动token显示检查
-    setTimeout(() => {
-        startTokenDisplayCheck();
-    }, 1000);
-});
-
     // 模态框背景点击关闭
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('modal')) {
@@ -866,17 +717,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    console.log('事件监听器初始化完成');
 }
 
-
-
-// 🔥 修改generateDocument函数，确保token正确发送
+// 任务管理方法
 async function generateDocument() {
-    // 🔑 检查登录状态
+    // 检查登录状态
     if (!currentUser || !currentUser.token) {
-        console.log('用户未登录，显示登录框');
         showLoginModal();
         return;
     }
@@ -901,12 +747,15 @@ async function generateDocument() {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
 
-        // 🔥 确保token正确发送
-        console.log('🔥 发送前检查token:', {
-            hasCurrentUser: !!currentUser,
-            hasToken: !!(currentUser && currentUser.token),
-            tokenLength: currentUser && currentUser.token ? currentUser.token.length : 0
-        });
+        // 检查token是否过期
+        if (currentUser.expires_at && currentUser.expires_at < Date.now()) {
+            currentUser = null;
+            localStorage.removeItem('docagent_user');
+            updateUserUI();
+            showMessage('登录已过期，请重新登录', 'warning');
+            showLoginModal();
+            return;
+        }
 
         formData.append('user_token', currentUser.token);
 
@@ -919,21 +768,16 @@ async function generateDocument() {
             body: formData
         });
 
-        // 🔥 增强的响应处理
         let result;
         const responseText = await response.text();
 
-        // 检查是否收到HTML错误页面
         if (responseText.trim().startsWith('<')) {
-            console.error('收到HTML响应而非JSON:', responseText.substring(0, 200));
             throw new Error('服务器返回了错误页面，请稍后重试');
         }
 
         try {
             result = JSON.parse(responseText);
         } catch (jsonError) {
-            console.error('JSON解析失败:', jsonError);
-            console.error('响应内容:', responseText.substring(0, 200));
             throw new Error('服务器响应格式错误');
         }
 
@@ -942,10 +786,8 @@ async function generateDocument() {
             selectedFiles = [];
             updateFileList();
             if (promptInput) promptInput.value = '';
-            // 立即刷新任务列表
             setTimeout(() => loadTasks(true), 1000);
         } else {
-            // 🔥 详细的错误处理
             let errorMessage = result.error || result.message || t('upload_failed');
 
             if (result.error === 'COOLDOWN_ACTIVE') {
@@ -953,7 +795,6 @@ async function generateDocument() {
                 showMessage(errorMessage, 'warning');
             } else if (response.status === 401) {
                 errorMessage = '登录已过期，请重新登录';
-                // 清除本地登录状态
                 currentUser = null;
                 localStorage.removeItem('docagent_user');
                 updateUserUI();
@@ -967,9 +808,6 @@ async function generateDocument() {
         }
 
     } catch (error) {
-        console.error('上传错误:', error);
-
-        // 🔥 更详细的错误分类
         let errorMessage = t('upload_failed');
 
         if (error.message.includes('fetch')) {
@@ -990,7 +828,6 @@ async function generateDocument() {
     }
 }
 
-
 function showTaskSubmittedSuccess(taskId) {
     const content = `
         <div class="success-animation">
@@ -1009,7 +846,6 @@ function showTaskSubmittedSuccess(taskId) {
         className: 'btn-primary',
         onClick: () => {
             closeGenericModal();
-            // 🔥 点击返回列表时也要确保启动轮询
             loadTasks(true);
             startSmartPolling();
         }
@@ -1017,12 +853,10 @@ function showTaskSubmittedSuccess(taskId) {
 
     showModal(t('success'), content, actions, 'success');
 
-    // 重新渲染图标
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
 
-    // 🔥 立即开始轮询，不要等待倒计时
     setTimeout(() => {
         loadTasks(true);
         startSmartPolling();
@@ -1098,12 +932,9 @@ async function loadTasks(reset = false) {
                 }
             }
 
-            // 🔥 检查是否有待处理任务并启动相应的轮询
             const hasPendingTasks = result.data.tasks.some(task =>
                 task.status === 'processing' || task.status === 'created' || task.status === 'ai_thinking'
             );
-
-            console.log('检查到待处理任务:', hasPendingTasks);
 
             if (hasPendingTasks) {
                 startPolling();
@@ -1111,7 +942,6 @@ async function loadTasks(reset = false) {
                 stopPolling();
             }
 
-            // 重新渲染图标
             if (typeof feather !== 'undefined') {
                 feather.replace();
             }
@@ -1259,11 +1089,10 @@ function editNote(taskId, element) {
     input.focus();
 }
 
-// 🔥 改进的轮询管理
+// 轮询管理
 function startPolling() {
     if (pollInterval) return;
 
-    console.log('开始轮询任务状态...');
     pollInterval = setInterval(async () => {
         const userId = getUserId();
         if (!userId || !currentUser) return;
@@ -1276,7 +1105,6 @@ function startPolling() {
             const result = await response.json();
 
             if (result.success && result.data.updated_tasks > 0) {
-                console.log('检测到任务状态更新，刷新列表');
                 loadTasks(true);
             }
         } catch (error) {
@@ -1287,27 +1115,20 @@ function startPolling() {
 
 function stopPolling() {
     if (pollInterval) {
-        console.log('停止轮询');
         clearInterval(pollInterval);
         pollInterval = null;
     }
 }
 
-// 🔥 修改智能轮询函数
 function startSmartPolling() {
-    // 🔥 如果没有登录用户，不启动轮询
     if (!currentUser) return;
 
-    console.log('启动智能轮询系统');
-
-    // 每30秒检查一次是否有待处理任务
     if (pendingCheckTimer) {
         clearInterval(pendingCheckTimer);
     }
 
     pendingCheckTimer = setInterval(async () => {
         const userId = getUserId();
-        // 🔥 如果没有userId或没有登录用户，跳过
         if (!userId || !currentUser) return;
 
         try {
@@ -1319,10 +1140,8 @@ function startSmartPolling() {
                 hasActiveTasks = result.has_pending;
 
                 if (hasActiveTasks && !hadActiveTasks) {
-                    console.log('检测到新的待处理任务，启动频繁轮询');
                     startFrequentPolling();
                 } else if (!hasActiveTasks && hadActiveTasks) {
-                    console.log('所有任务完成，停止频繁轮询');
                     stopFrequentPolling();
                 }
             }
@@ -1332,11 +1151,9 @@ function startSmartPolling() {
     }, 30000);
 }
 
-// 修改频繁轮询函数
 function startFrequentPolling() {
     if (smartPollingTimer) return;
 
-    console.log('启动频繁轮询...');
     smartPollingTimer = setInterval(async () => {
         const userId = getUserId();
         if (!userId || !currentUser) return;
@@ -1346,7 +1163,6 @@ function startFrequentPolling() {
             const result = await response.json();
 
             if (result.success && result.data.updated_tasks > 0) {
-                console.log('频繁轮询检测到更新');
                 loadTasks(true);
             }
         } catch (error) {
@@ -1362,7 +1178,6 @@ function stopFrequentPolling() {
     }
 }
 
-// 🔥 停止所有轮询
 function stopAllPolling() {
     stopPolling();
     stopFrequentPolling();
@@ -1386,5 +1201,3 @@ window.verifyCode = verifyCode;
 window.handleLogout = handleLogout;
 window.generateDocument = generateDocument;
 window.loadTasks = loadTasks;
-
-console.log('JavaScript 文件加载完成');
