@@ -3,12 +3,7 @@ main = "src/index.ts" #明确指出 main 模块！
 compatibility_date = "2024-11-06"
 
 [site]
-bucket = "./public" # 确认这是新增的public文件夹，路径正确存在
-# 🔥 如果使用 Workers Sites
-[[kv_namespaces]]
-binding = "ASSETS"
-id = "832b93be1b59476e838a6b8615bbb4d6"
-preview_id = "__docagent-workers_sites_assets"
+bucket = "public" # 确认这是新增的public文件夹，路径正确存在
 
 [[d1_databases]]
 binding = "D1"
