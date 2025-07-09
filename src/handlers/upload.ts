@@ -21,8 +21,8 @@ export async function handleUpload(
     const userToken = formData.get('user_token') as string;
 
     if (!userToken) {
-      console.log('认证失败: 缺少token或userId');
-      return createErrorResponse('缺少用户认证信息 ，请重新登录' + userToken, 401);
+
+      return createErrorResponse('缺少用户认证信息 ，请重新登录', 401);
     }
 
     // 处理上传的文件

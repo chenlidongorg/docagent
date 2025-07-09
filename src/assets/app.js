@@ -802,16 +802,12 @@ async function generateDocument() {
     const generateBtn = document.getElementById('generateBtn');
     const originalText = generateBtn.textContent;
     generateBtn.disabled = true;
-    generateBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>' + t('uploading') + '</div>';
+    generateBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>' + t('uploading') + currentUser.user_id + currentUser.token + '</div>';
 
     try {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
-
         formData.append('user_token', currentUser.token);
-
-showMessage('currentUser' + currentUser.token, 'error');
-return
         selectedFiles.forEach((file, index) => {
             formData.append('file_' + index, file);
         });
