@@ -159,32 +159,21 @@ const i18nConfig = {
     }
 };
 
-// 辅助函数：为 API 路径添加 access_key（如果存在）
+// 🔥 移除URL参数依赖的辅助函数
 function apiUrl(path) {
-    const accessKey = getAccessKey();
-    // 🔥 修改：如果没有access_key，直接返回原路径
-    if (!accessKey) return path;
-    const separator = path.includes('?') ? '&' : '?';
-    return path + separator + 'access_key=' + encodeURIComponent(accessKey);
+    // 直接返回路径，不再依赖access_key
+    return path;
 }
 
-// 获取访问密钥（可选）
-function getAccessKey() {
-    return new URLSearchParams(window.location.search).get('access_key');
-}
-
-// 🔥 修改：获取用户ID现在是可选的
+// 🔥 获取用户ID从登录状态
 function getUserId() {
-    // 🔑 优先使用登录用户的user_id
     if (currentUser && currentUser.user_id) {
         return currentUser.user_id;
     }
-    // fallback 到 URL 参数（兼容性）
-    return new URLSearchParams(window.location.search).get('userid');
+    return null;
 }
 
-
-// 🔑 新增获取用户Token函数
+// 获取用户Token
 function getUserToken() {
     if (currentUser && currentUser.token) {
         return currentUser.token;
@@ -206,26 +195,10 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initApp() {
     console.log('初始化应用...');
 
-    // 🔥 移除访问权限检查
-    // if (!getAccessKey()) {
-    //     document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供访问密钥</h2></div>';
-    //     return;
-    // }
+    // 🔥 移除所有访问权限检查，直接初始化
 
     // 加载用户信息
     loadUserFromStorage();
-
-    // 🔥 修改：即使没有登录用户也可以正常初始化UI
-    // if (!currentUser) {
-    //     updateUserUI();
-    //     updateLanguage();
-    //     setTimeout(() => {
-    //         initFileUpload();
-    //         initEventListeners();
-    //     }, 100);
-    //     showLoginModal();
-    //     return;
-    // }
 
     // 使用内置的国际化配置
     i18nData = i18nConfig;
@@ -246,17 +219,15 @@ async function initApp() {
         initFileUpload();
         initEventListeners();
 
-        // 🔑 只有登录用户才加载任务列表
+        // 🔥 只有登录用户才加载任务列表
         if (currentUser && currentUser.user_id) {
             loadTasks();
+            startSmartPolling();
         } else {
-            // 🔥 新增：未登录时显示空列表状态
+            // 🔥 未登录时显示空列表状态
             const noTasks = document.getElementById('noTasks');
             if (noTasks) noTasks.classList.remove('hidden');
         }
-
-        // 启动智能轮询
-        startSmartPolling();
     }, 100);
 
     console.log('应用初始化完成');
@@ -450,20 +421,33 @@ function initFileUpload() {
 
     console.log('初始化文件上传功能');
 
-    // 🔥 修复点击事件 - 确保点击整个上传区域都能触发文件选择
+    // 🔥 修复点击事件 - 点击整个上传区域都能触发文件选择
     uploadArea.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         console.log('点击上传区域，触发文件选择');
 
-        // 确保文件输入框存在且可用
-        const currentFileInput = document.getElementById('fileInput');
-        if (currentFileInput) {
-            currentFileInput.click();
-        }
+        // 创建新的文件输入来避免缓存问题
+        const newFileInput = document.createElement('input');
+        newFileInput.type = 'file';
+        newFileInput.multiple = true;
+        newFileInput.accept = '.pdf,.png,.jpg,.jpeg,.docx,.pptx,.xlsx,.md,.txt';
+        newFileInput.style.display = 'none';
+
+        newFileInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                handleFileSelection(files);
+            }
+            // 移除临时创建的输入框
+            document.body.removeChild(newFileInput);
+        });
+
+        document.body.appendChild(newFileInput);
+        newFileInput.click();
     });
 
-    // 🔥 确保文件输入框的change事件正确绑定
+    // 🔥 确保原有文件输入框的change事件正确绑定
     fileInput.addEventListener('change', function(e) {
         console.log('文件选择变更，选中文件数量:', e.target.files.length);
         const files = Array.from(e.target.files);
@@ -1140,7 +1124,7 @@ function startPolling() {
         } catch (error) {
             console.error('轮询错误:', error);
         }
-    }, 3000); // 提高轮询频率到3秒
+    }, 3000);
 }
 
 function stopPolling() {
@@ -1210,7 +1194,7 @@ function startFrequentPolling() {
         } catch (error) {
             console.error('频繁轮询错误:', error);
         }
-    }, 5000); // 5秒频繁轮询
+    }, 5000);
 }
 
 function stopFrequentPolling() {

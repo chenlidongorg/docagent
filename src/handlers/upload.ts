@@ -1,3 +1,8 @@
+// ========== src/handlers/upload.ts ==========
+import { CloudflareEnv, FileData, UploadRequest } from '../types';
+import { createErrorResponse, createSuccessResponse } from '../utils/response';
+import { arrayBufferToBase64 } from '../utils/helpers';
+
 export async function handleUpload(
   request: Request,
   env: CloudflareEnv,

@@ -3,7 +3,7 @@ import { CloudflareEnv } from '../types';
 import { createErrorResponse } from '../utils/response';
 
 export function checkAccess(request: Request, env: CloudflareEnv): Response | null {
-  // 🔥 移除所有默认访问权限检查
+  // 🔥 完全移除访问权限检查
   // 页面可以直接访问，登录检查在前端处理
   return null;
 }
