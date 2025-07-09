@@ -800,7 +800,7 @@ async function generateDocument() {
     try {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
-        formData.append('user_token', currentUser.user_id);
+        formData.append('user_token', currentUser.userEmail);
         selectedFiles.forEach((file, index) => {
             formData.append('file_' + index, file);
         });
