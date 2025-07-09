@@ -1,153 +1,153 @@
 // ========== src/utils/i18n.ts ==========
 export const i18nConfig = {
   zh: {
-    // 原有配置...
+    // Logo和标题
     doc_ai_agent: '文档生成智能体',
     doc_ai_agent_short: '文档智能体',
 
-    // 新增登录相关
+    // 登录相关
     login: '登录',
     logout: '退出',
     login_required: '请先登录',
     login_required_message: '您需要登录后才能使用文档生成服务',
     login_success: '登录成功',
     logout_success: '已退出登录',
-    user_info: '用户信息',
-    login_loading: '登录中...',
     login_failed: '登录失败',
-    login_cancelled: '登录已取消',
-    session_expired: '登录已过期，请重新登录',
 
-    // 其他原有配置...
-    submitting: '任务提交中',
-    uploading: '正在上传文件并创建任务...',
+    // 文档创建
     create_document: '创建文档',
     drag_or_click: '拖拽文件到此处或点击选择文件(可选)',
     supported_formats: '支持 PDF, PNG, JPG, DOCX, PPTX, XLSX 等格式',
     document_requirements: '文档需求描述',
     requirements_placeholder: '请描述您希望生成的文档内容和格式要求（如未上传文件则必填）...',
     generate_document_btn: '开始生成',
-    task_submitted: '任务提交成功！',
-    task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。<br>任务已进入队列处理，您可以离开页面稍后查看结果。',
-    return_to_list: '返回列表',
-    processing: '正在处理...',
-    can_close_page: '任务已提交，您可以关闭页面，稍后回来查看结果',
-    submit_new_task: '提交新任务',
+
+    // 任务管理
     my_documents: '我的文档',
     no_document_records: '暂无文档记录',
     load_more: '加载更多',
-    loading: '正在加载...',
+    refresh: '刷新',
     download: '下载',
-    download_with_data: '下载文件',
     delete: '删除',
     no_note: '无备注',
-    auto_return_seconds: '秒后自动返回',
-    confirm_delete: '确定要删除这个文档吗？',
-    delete_success: '文档删除成功！',
-    note_update_success: '备注更新成功',
-    files_or_prompt_required: '请上传文件或描述您的文档需求',
-    upload_failed: '上传失败',
-    download_failed: '下载失败',
-    delete_failed: '删除失败',
-    update_failed: '更新失败',
-    file_too_large: '文件过大，最大支持50MB',
+
+    // 状态
+    processing: '处理中',
+    completed: '已完成',
+    failed: '失败',
+
+    // 文件格式
     format_pptx: 'PPT演示',
     format_pdf: 'PDF文档',
     format_docx: 'Word文档',
     format_xlsx: 'Excel表格',
     format_png: '图片',
-    format_md: 'Markdown文档',
-    format_html: '网页文档',
-    format_json: 'JSON数据',
-    copyright: '版权所有',
-    cleanup_success: '服务端任务清理成功',
-    cleanup_failed: '服务端任务清理失败（不影响文件下载）',
+    format_md: 'Markdown',
+    format_html: '网页',
+    format_json: 'JSON',
+    format_unknown: '未知格式',
+
+    // 消息
+    task_submitted: '任务提交成功！',
+    task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。',
+    return_to_list: '返回列表',
+    auto_return_seconds: '秒后自动返回',
+    upload_failed: '上传失败',
+    download_failed: '下载失败',
+    delete_failed: '删除失败',
+    update_failed: '更新失败',
+    file_too_large: '文件过大，最大支持50MB',
+    files_or_prompt_required: '请上传文件或描述您的文档需求',
+    cooldown_wait_hint: '请求过于频繁，请稍后再试',
+    confirm_delete: '确定要删除这个文档吗？',
+    delete_success: '文档删除成功！',
+    uploading: '上传中...',
+
+    // 通用
     confirm: '确定',
     cancel: '取消',
     ok: '好的',
+    success: '成功',
     error: '错误',
     warning: '警告',
-    success: '成功',
     info: '提示',
-    task_create_failed: '任务创建失败',
-    retry: '重试',
-    network_retry_hint: '网络连接失败，是否要重试？',
-    cooldown_wait_hint: '请求过于频繁，需要间隔30秒提交任务',
-    technical_details: '技术细节'
+
+    // 版权
+    copyright: '版权所有'
   },
   en: {
-    // 原有配置...
+    // Logo和标题
     doc_ai_agent: 'Document Generation Agent',
     doc_ai_agent_short: 'Doc Agent',
 
-    // 新增登录相关
+    // 登录相关
     login: 'Login',
     logout: 'Logout',
     login_required: 'Login Required',
     login_required_message: 'You need to login to use the document generation service',
     login_success: 'Login successful',
     logout_success: 'Logged out successfully',
-    user_info: 'User Info',
-    login_loading: 'Logging in...',
     login_failed: 'Login failed',
-    login_cancelled: 'Login cancelled',
-    session_expired: 'Session expired, please login again',
 
-    // 其他原有配置...
-    submitting: 'Submitting Task',
-    uploading: 'Uploading files and creating task...',
+    // 文档创建
     create_document: 'Create Document',
     drag_or_click: 'Drag files here or click to select (optional)',
     supported_formats: 'Supports PDF, PNG, JPG, DOCX, PPTX, XLSX formats',
     document_requirements: 'Document Requirements',
     requirements_placeholder: 'Please describe the content and format requirements for your document (required if no files uploaded)...',
     generate_document_btn: 'Start Generate',
-    task_submitted: 'Task Submitted Successfully!',
-    task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format.<br>The task has been queued for processing, you can leave the page and check results later.',
-    return_to_list: 'Return to List',
-    processing: 'Processing...',
-    can_close_page: 'Task submitted, you can close the page and check results later',
-    submit_new_task: 'Submit New Task',
+
+    // 任务管理
     my_documents: 'My Documents',
     no_document_records: 'No document records',
     load_more: 'Load More',
-    loading: 'Loading...',
+    refresh: 'Refresh',
     download: 'Download',
-    download_with_data: 'Download File',
     delete: 'Delete',
     no_note: 'No note',
+
+    // 状态
+    processing: 'Processing',
+    completed: 'Completed',
+    failed: 'Failed',
+
+    // 文件格式
+    format_pptx: 'PPT',
+    format_pdf: 'PDF',
+    format_docx: 'Word',
+    format_xlsx: 'Excel',
+    format_png: 'Image',
+    format_md: 'Markdown',
+    format_html: 'HTML',
+    format_json: 'JSON',
+    format_unknown: 'Unknown',
+
+    // 消息
+    task_submitted: 'Task Submitted Successfully!',
+    task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format. The task has been queued for processing, you can leave the page and check results later.',
+    return_to_list: 'Return to List',
     auto_return_seconds: 's until auto return',
-    confirm_delete: 'Are you sure you want to delete this document?',
-    delete_success: 'Document deleted successfully!',
-    note_update_success: 'Note updated successfully',
-    files_or_prompt_required: 'Please upload files or describe your document requirements',
     upload_failed: 'Upload failed',
     download_failed: 'Download failed',
     delete_failed: 'Delete failed',
     update_failed: 'Update failed',
     file_too_large: 'File too large, maximum 50MB supported',
-    format_pptx: 'PPT',
-    format_pdf: 'PDF',
-    format_docx: 'Word',
-    format_xlsx: 'Excel',
-    format_png: 'Infographic',
-    format_md: 'Markdown',
-    format_html: 'Web',
-    format_json: 'JSON',
-    copyright: 'All rights reserved',
-    cleanup_success: 'Server task cleanup successful',
-    cleanup_failed: 'Server task cleanup failed (download not affected)',
+    files_or_prompt_required: 'Please upload files or describe your document requirements',
+    cooldown_wait_hint: 'Too frequent requests, please try again later',
+    confirm_delete: 'Are you sure you want to delete this document?',
+    delete_success: 'Document deleted successfully!',
+    uploading: 'Uploading...',
+
+    // 通用
     confirm: 'Confirm',
     cancel: 'Cancel',
     ok: 'OK',
+    success: 'Success',
     error: 'Error',
     warning: 'Warning',
-    success: 'Success',
     info: 'Info',
-    task_create_failed: 'Task creation failed',
-    retry: 'Retry',
-    network_retry_hint: 'Network connection failed, do you want to retry?',
-    cooldown_wait_hint: 'Too frequent requests, need to wait 30 seconds between submissions',
-    technical_details: 'Technical Details'
+
+    // 版权
+    copyright: 'All rights reserved'
   }
 };
