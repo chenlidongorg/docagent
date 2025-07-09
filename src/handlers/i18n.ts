@@ -1,4 +1,7 @@
-// src/handlers/i18n.ts - 更新国际化配置
+// ========== src/handlers/i18n.ts ==========
+import { CloudflareEnv } from '../types';
+import { createSuccessResponse } from '../utils/response';
+
 export const i18nConfig = {
   zh: {
     // Logo和标题
@@ -12,6 +15,16 @@ export const i18nConfig = {
     login_required_message: '您需要登录后才能使用文档生成服务',
     login_success: '登录成功',
     logout_success: '已退出登录',
+    send_verification: '发送验证码',
+    verify_code: '验证登录',
+    email: '邮箱',
+    verification_code: '验证码',
+    email_placeholder: '请输入您的邮箱地址',
+    code_placeholder: '请输入6位验证码',
+    code_sent: '验证码已发送',
+    code_sent_message: '验证码已发送到您的邮箱，请查收',
+    invalid_code: '验证码无效或已过期',
+    login_failed: '登录失败',
 
     // 文档创建
     create_document: '创建文档',
@@ -20,6 +33,7 @@ export const i18nConfig = {
     document_requirements: '文档需求描述',
     requirements_placeholder: '请描述您希望生成的文档内容和格式要求（如未上传文件则必填）...',
     generate_document_btn: '开始生成',
+    uploading: '正在上传...',
 
     // 任务管理
     my_documents: '我的文档',
@@ -29,6 +43,10 @@ export const i18nConfig = {
     download: '下载',
     delete: '删除',
     no_note: '无备注',
+    task_submitted: '任务提交成功！',
+    task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。<br>任务已进入队列处理，您可以离开页面稍后查看结果。',
+    return_to_list: '返回列表',
+    auto_return_seconds: '秒后自动返回',
 
     // 状态
     processing: '处理中',
@@ -50,9 +68,12 @@ export const i18nConfig = {
     upload_failed: '上传失败',
     download_failed: '下载失败',
     delete_failed: '删除失败',
+    update_failed: '更新失败',
+    delete_success: '删除成功',
     file_too_large: '文件过大，最大支持50MB',
     files_or_prompt_required: '请上传文件或描述您的文档需求',
     cooldown_wait_hint: '请求过于频繁，请稍后再试',
+    confirm_delete: '确定要删除这个文档吗？',
 
     // 通用
     confirm: '确定',
@@ -78,6 +99,16 @@ export const i18nConfig = {
     login_required_message: 'You need to login to use the document generation service',
     login_success: 'Login successful',
     logout_success: 'Logged out successfully',
+    send_verification: 'Send Code',
+    verify_code: 'Verify Login',
+    email: 'Email',
+    verification_code: 'Verification Code',
+    email_placeholder: 'Please enter your email address',
+    code_placeholder: 'Please enter 6-digit code',
+    code_sent: 'Code Sent',
+    code_sent_message: 'Verification code has been sent to your email',
+    invalid_code: 'Invalid or expired code',
+    login_failed: 'Login failed',
 
     // 文档创建
     create_document: 'Create Document',
@@ -86,6 +117,7 @@ export const i18nConfig = {
     document_requirements: 'Document Requirements',
     requirements_placeholder: 'Please describe the content and format requirements for your document (required if no files uploaded)...',
     generate_document_btn: 'Start Generate',
+    uploading: 'Uploading...',
 
     // 任务管理
     my_documents: 'My Documents',
@@ -95,6 +127,10 @@ export const i18nConfig = {
     download: 'Download',
     delete: 'Delete',
     no_note: 'No note',
+    task_submitted: 'Task Submitted Successfully!',
+    task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format.<br>The task has been queued for processing, you can leave the page and check results later.',
+    return_to_list: 'Return to List',
+    auto_return_seconds: 's until auto return',
 
     // 状态
     processing: 'Processing',
@@ -116,9 +152,12 @@ export const i18nConfig = {
     upload_failed: 'Upload failed',
     download_failed: 'Download failed',
     delete_failed: 'Delete failed',
+    update_failed: 'Update failed',
+    delete_success: 'Delete successful',
     file_too_large: 'File too large, maximum 50MB supported',
     files_or_prompt_required: 'Please upload files or describe your document requirements',
     cooldown_wait_hint: 'Too frequent requests, please try again later',
+    confirm_delete: 'Are you sure you want to delete this document?',
 
     // 通用
     confirm: 'Confirm',
@@ -133,3 +172,7 @@ export const i18nConfig = {
     copyright: 'All rights reserved'
   }
 };
+
+export function handleI18n(request: Request, env: CloudflareEnv): Response {
+  return createSuccessResponse(i18nConfig);
+}

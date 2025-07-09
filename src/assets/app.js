@@ -9,6 +9,7 @@ class DocAgentApp {
         this.pollInterval = null;
         this.currentUser = null;
         this.i18n = null;
+        this.authApiBase = 'https://user.endlessai.org/api/auth';
 
         this.init();
     }
@@ -32,9 +33,6 @@ class DocAgentApp {
         this.loadUserFromStorage();
         this.updateUserUI();
 
-        // 检查登录结果
-        this.checkLoginResult();
-
         // 初始化UI
         this.updateLanguage();
         this.initFileUpload();
@@ -55,16 +53,9 @@ class DocAgentApp {
             this.i18n = await response.json();
         } catch (error) {
             console.error('Failed to load i18n:', error);
-            // 使用默认配置
             this.i18n = {
-                zh: {
-                    doc_ai_agent: '文档生成智能体',
-                    // ... 其他默认配置
-                },
-                en: {
-                    doc_ai_agent: 'Document Generation Agent',
-                    // ... 其他默认配置
-                }
+                zh: { doc_ai_agent: '文档生成智能体' },
+                en: { doc_ai_agent: 'Document Generation Agent' }
             };
         }
     }
@@ -89,7 +80,7 @@ class DocAgentApp {
         return new URLSearchParams(window.location.search).get('access_key');
     }
 
-    // 用户认证相关方法
+    // 认证相关方法
     loadUserFromStorage() {
         const userStr = localStorage.getItem('docagent_user');
         if (userStr) {
@@ -97,7 +88,6 @@ class DocAgentApp {
                 const user = JSON.parse(userStr);
                 if (user.expires_at && user.expires_at > Date.now()) {
                     this.currentUser = user;
-                    this.updateUserUI();
                     return true;
                 } else {
                     localStorage.removeItem('docagent_user');
@@ -131,83 +121,113 @@ class DocAgentApp {
         }
     }
 
-    handleLogin() {
-        const loginUrl = new URL('https://user.endlessai.org/login');
-        loginUrl.searchParams.set('locale', this.currentLanguage);
-        loginUrl.searchParams.set('redirect_uri', window.location.origin + window.location.pathname);
-        loginUrl.searchParams.set('client_id', 'docagent');
+    async sendVerificationCode() {
+        const email = document.getElementById('loginEmail').value.trim();
+        if (!email) {
+            this.showMessage('请输入邮箱地址', 'error');
+            return;
+        }
 
-        const popup = window.open(
-            loginUrl.toString(),
-            'docagent_login',
-            'width=500,height=600,scrollbars=yes,resizable=yes'
-        );
+        const sendBtn = document.getElementById('sendCodeBtn');
+        const originalText = sendBtn.textContent;
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>发送中...</div>';
 
-        const checkClosed = setInterval(() => {
-            if (popup.closed) {
-                clearInterval(checkClosed);
-                this.checkLoginResult();
+        try {
+            const response = await fetch(this.authApiBase + '/send-verification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showMessage(this.t('code_sent_message'), 'success');
+                document.getElementById('emailStep').classList.add('hidden');
+                document.getElementById('codeStep').classList.remove('hidden');
+                document.getElementById('loginCode').focus();
+            } else {
+                this.showMessage(result.message || '发送失败', 'error');
             }
-        }, 1000);
-
-        const messageHandler = (event) => {
-            if (event.origin !== 'https://user.endlessai.org') return;
-
-            if (event.data.type === 'login_success') {
-                clearInterval(checkClosed);
-                popup.close();
-                this.handleLoginSuccess(event.data.user);
-                window.removeEventListener('message', messageHandler);
-            } else if (event.data.type === 'login_error') {
-                clearInterval(checkClosed);
-                popup.close();
-                this.showMessage(event.data.message || this.t('login_failed'), 'error');
-                window.removeEventListener('message', messageHandler);
-            }
-        };
-
-        window.addEventListener('message', messageHandler);
-    }
-
-    checkLoginResult() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userToken = urlParams.get('token');
-        const userEmail = urlParams.get('email');
-
-        if (userToken && userEmail) {
-            const user = {
-                token: userToken,
-                user_id: userToken,
-                email: userEmail,
-                expires_at: Date.now() + (24 * 60 * 60 * 1000)
-            };
-
-            this.handleLoginSuccess(user);
-
-            const newUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
-            if (this.getAccessKey()) {
-                newUrl += '?access_key=' + this.getAccessKey();
-            }
-            window.history.replaceState({}, document.title, newUrl);
+        } catch (error) {
+            this.showMessage('网络错误，请重试', 'error');
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = originalText;
         }
     }
 
-    handleLoginSuccess(user) {
-        this.currentUser = user;
-        localStorage.setItem('docagent_user', JSON.stringify(user));
-        this.updateUserUI();
-        this.closeLoginModal();
-        this.showMessage(this.t('login_success'), 'success');
+    async verifyCode() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const code = document.getElementById('loginCode').value.trim();
+
+        if (!code) {
+            this.showMessage('请输入验证码', 'error');
+            return;
+        }
+
+        const verifyBtn = document.getElementById('verifyCodeBtn');
+        const originalText = verifyBtn.textContent;
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>验证中...</div>';
+
+        try {
+            const response = await fetch(this.authApiBase + '/verify-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, code })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const user = {
+                    token: result.data.token,
+                    user_id: result.data.user.id,
+                    email: result.data.user.email,
+                    expires_at: Date.now() + (24 * 60 * 60 * 1000)
+                };
+
+                this.currentUser = user;
+                localStorage.setItem('docagent_user', JSON.stringify(user));
+                this.updateUserUI();
+                this.closeLoginModal();
+                this.showMessage(this.t('login_success'), 'success');
+                this.loadTasks();
+            } else {
+                this.showMessage(result.message || '验证失败', 'error');
+            }
+        } catch (error) {
+            this.showMessage('网络错误，请重试', 'error');
+        } finally {
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = originalText;
+        }
     }
 
-    handleLogout() {
+    async handleLogout() {
+        if (this.currentUser && this.currentUser.token) {
+            try {
+                await fetch(this.authApiBase + '/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + this.currentUser.token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } catch (error) {
+                // 忽略登出API错误
+            }
+        }
+
         this.currentUser = null;
         localStorage.removeItem('docagent_user');
         this.updateUserUI();
         this.showMessage(this.t('logout_success'), 'success');
     }
 
-    // 文件上传相关方法
+    // 文件上传相关方法 (保持原有逻辑)
     initFileUpload() {
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
@@ -323,6 +343,9 @@ class DocAgentApp {
 
     showLoginModal() {
         document.getElementById('loginModal').classList.add('show');
+        document.getElementById('emailStep').classList.remove('hidden');
+        document.getElementById('codeStep').classList.add('hidden');
+        document.getElementById('loginEmail').focus();
     }
 
     closeLoginModal() {
@@ -374,11 +397,15 @@ class DocAgentApp {
         });
 
         // 登录/退出
-        document.getElementById('loginBtn').addEventListener('click', () => this.handleLogin());
+        document.getElementById('loginBtn').addEventListener('click', () => this.showLoginModal());
         document.getElementById('logoutBtn').addEventListener('click', () => this.handleLogout());
-        document.getElementById('openLoginBtn').addEventListener('click', () => {
-            this.closeLoginModal();
-            this.handleLogin();
+
+        // 登录表单
+        document.getElementById('sendCodeBtn').addEventListener('click', () => this.sendVerificationCode());
+        document.getElementById('verifyCodeBtn').addEventListener('click', () => this.verifyCode());
+        document.getElementById('backToEmailBtn').addEventListener('click', () => {
+            document.getElementById('emailStep').classList.remove('hidden');
+            document.getElementById('codeStep').classList.add('hidden');
         });
 
         // 生成文档
@@ -414,9 +441,18 @@ class DocAgentApp {
                 this.closeLoginModal();
             }
         });
+
+        // 登录表单回车事件
+        document.getElementById('loginEmail').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.sendVerificationCode();
+        });
+
+        document.getElementById('loginCode').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.verifyCode();
+        });
     }
 
-    // 任务管理方法
+    // 任务管理方法 (保持原有逻辑)
     async generateDocument() {
         if (!this.requireLogin()) return;
 
@@ -516,6 +552,7 @@ class DocAgentApp {
         updateCountdown();
     }
 
+    // 任务相关方法 (保持原有代码不变)
     async loadTasks(reset = false) {
         if (!this.currentUser) return;
 
@@ -610,7 +647,6 @@ class DocAgentApp {
         `;
 
         feather.replace();
-
         return taskElement;
     }
 
