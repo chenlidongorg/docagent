@@ -1,3 +1,4 @@
+// src/assets/app.js
 // 全局变量
 let currentLanguage = 'zh';
 let selectedFiles = [];
@@ -11,6 +12,7 @@ const authApiBase = 'https://user.endlessai.org/api/auth';
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM加载完成，开始初始化...');
     initApp();
 });
 
@@ -133,7 +135,10 @@ function updateUserUI() {
     }
 }
 
+// 登录相关函数
 async function sendVerificationCode() {
+    console.log('发送验证码函数被调用');
+
     const email = document.getElementById('loginEmail').value.trim();
     if (!email) {
         showMessage('请输入邮箱地址', 'error');
@@ -171,6 +176,8 @@ async function sendVerificationCode() {
 }
 
 async function verifyCode() {
+    console.log('验证码验证函数被调用');
+
     const email = document.getElementById('loginEmail').value.trim();
     const code = document.getElementById('loginCode').value.trim();
 
@@ -219,6 +226,8 @@ async function verifyCode() {
 }
 
 async function handleLogout() {
+    console.log('退出登录函数被调用');
+
     if (currentUser && currentUser.token) {
         try {
             await fetch(authApiBase + '/logout', {
@@ -237,6 +246,13 @@ async function handleLogout() {
     localStorage.removeItem('docagent_user');
     updateUserUI();
     showMessage(t('logout_success'), 'success');
+
+    // 清空任务列表
+    const tasksList = document.getElementById('tasksList');
+    if (tasksList) tasksList.innerHTML = '';
+
+    const noTasks = document.getElementById('noTasks');
+    if (noTasks) noTasks.classList.remove('hidden');
 }
 
 // 文件上传相关方法
@@ -246,21 +262,27 @@ function initFileUpload() {
 
     if (!uploadArea || !fileInput) return;
 
-    uploadArea.addEventListener('click', () => {
+    uploadArea.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         fileInput.click();
     });
 
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         uploadArea.classList.add('drag-over');
     });
 
-    uploadArea.addEventListener('dragleave', () => {
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         uploadArea.classList.remove('drag-over');
     });
 
     uploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         uploadArea.classList.remove('drag-over');
         const files = Array.from(e.dataTransfer.files);
         handleFileSelection(files);
@@ -303,7 +325,7 @@ function updateFileList() {
                 <span class="file-name">${file.name}</span>
                 <span class="file-size">(${formatFileSize(file.size)})</span>
             </div>
-            <button class="btn btn-sm btn-danger" onclick="removeFile(${index})">
+            <button class="btn btn-sm btn-danger" onclick="removeFile(${index})" type="button">
                 <i data-feather="x"></i>
             </button>
         </div>
@@ -316,6 +338,7 @@ function updateFileList() {
 }
 
 function removeFile(index) {
+    console.log('删除文件:', index);
     selectedFiles.splice(index, 1);
     updateFileList();
 }
@@ -349,11 +372,17 @@ function showModal(title, content, actions = [], type = 'info') {
         const button = document.createElement('button');
         button.className = `btn ${action.className || 'btn-secondary'}`;
         button.textContent = action.text;
-        button.onclick = action.onClick;
+        button.type = 'button';
+        button.addEventListener('click', action.onClick);
         modalActions.appendChild(button);
     });
 
     modal.classList.add('show');
+
+    // 重新渲染图标
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 }
 
 function closeGenericModal() {
@@ -362,6 +391,7 @@ function closeGenericModal() {
 }
 
 function showLoginModal() {
+    console.log('显示登录模态框');
     const modal = document.getElementById('loginModal');
     if (modal) {
         modal.classList.add('show');
@@ -378,29 +408,29 @@ function closeLoginModal() {
 
 function showMessage(message, type = 'success') {
     const actions = [{
-        text: t('ok'),
+        text: t('ok') || '确定',
         className: 'btn-primary',
         onClick: () => closeGenericModal()
     }];
 
-    showModal(t(type), message, actions, type);
+    showModal(t(type) || type, message, actions, type);
 }
 
 function showConfirm(message, onConfirm, onCancel) {
     const actions = [
         {
-            text: t('cancel'),
+            text: t('cancel') || '取消',
             className: 'btn-secondary',
             onClick: onCancel || (() => closeGenericModal())
         },
         {
-            text: t('confirm'),
+            text: t('confirm') || '确定',
             className: 'btn-primary',
             onClick: onConfirm
         }
     ];
 
-    showModal(t('confirm'), message, actions, 'warning');
+    showModal(t('confirm') || '确认', message, actions, 'warning');
 }
 
 function requireLogin() {
@@ -413,6 +443,8 @@ function requireLogin() {
 
 // 事件监听器初始化
 function initEventListeners() {
+    console.log('初始化事件监听器...');
+
     // 语言切换
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
@@ -423,44 +455,92 @@ function initEventListeners() {
         });
     }
 
-    // 登录/退出
+    // 登录/退出按钮
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
-    if (loginBtn) loginBtn.addEventListener('click', () => showLoginModal());
-    if (logoutBtn) logoutBtn.addEventListener('click', () => handleLogout());
 
-    // 登录表单
+    if (loginBtn) {
+        loginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('登录按钮被点击');
+            showLoginModal();
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('退出按钮被点击');
+            handleLogout();
+        });
+    }
+
+    // 登录表单按钮
     const sendCodeBtn = document.getElementById('sendCodeBtn');
     const verifyCodeBtn = document.getElementById('verifyCodeBtn');
     const backToEmailBtn = document.getElementById('backToEmailBtn');
 
-    if (sendCodeBtn) sendCodeBtn.addEventListener('click', () => sendVerificationCode());
-    if (verifyCodeBtn) verifyCodeBtn.addEventListener('click', () => verifyCode());
+    if (sendCodeBtn) {
+        sendCodeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            sendVerificationCode();
+        });
+    }
+
+    if (verifyCodeBtn) {
+        verifyCodeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            verifyCode();
+        });
+    }
+
     if (backToEmailBtn) {
-        backToEmailBtn.addEventListener('click', () => {
+        backToEmailBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             document.getElementById('emailStep').classList.remove('hidden');
             document.getElementById('codeStep').classList.add('hidden');
         });
     }
 
-    // 生成文档
+    // 生成文档按钮
     const generateBtn = document.getElementById('generateBtn');
-    if (generateBtn) generateBtn.addEventListener('click', () => generateDocument());
+    if (generateBtn) {
+        generateBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('生成按钮被点击');
+            generateDocument();
+        });
+    }
 
-    // 刷新任务
+    // 刷新按钮
     const refreshBtn = document.getElementById('refreshBtn');
-    if (refreshBtn) refreshBtn.addEventListener('click', () => loadTasks(true));
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('刷新按钮被点击');
+            loadTasks(true);
+        });
+    }
 
-    // 加载更多
+    // 加载更多按钮
     const loadMoreBtn = document.getElementById('loadMoreBtn');
     if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', () => {
+        loadMoreBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             currentPage++;
             loadTasks();
         });
     }
 
-    // 关闭模态框
+    // 模态框关闭
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal')) {
             e.target.classList.remove('show');
@@ -478,16 +558,32 @@ function initEventListeners() {
     // 登录表单回车事件
     const loginEmail = document.getElementById('loginEmail');
     const loginCode = document.getElementById('loginCode');
-    if (loginEmail) loginEmail.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendVerificationCode();
-    });
-    if (loginCode) loginCode.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') verifyCode();
-    });
+
+    if (loginEmail) {
+        loginEmail.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendVerificationCode();
+            }
+        });
+    }
+
+    if (loginCode) {
+        loginCode.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                verifyCode();
+            }
+        });
+    }
+
+    console.log('事件监听器初始化完成');
 }
 
 // 任务管理方法
 async function generateDocument() {
+    console.log('开始生成文档...');
+
     if (!requireLogin()) return;
 
     const promptInput = document.getElementById('promptInput');
@@ -504,7 +600,7 @@ async function generateDocument() {
     const generateBtn = document.getElementById('generateBtn');
     const originalText = generateBtn.textContent;
     generateBtn.disabled = true;
-    generateBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>' + t('uploading') + '</div>';
+    generateBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>' + (t('uploading') || '上传中...') + '</div>';
 
     try {
         const formData = new FormData();
@@ -531,12 +627,12 @@ async function generateDocument() {
             if (result.error === 'COOLDOWN_ACTIVE') {
                 showMessage(t('cooldown_wait_hint'), 'warning');
             } else {
-                showMessage(t('upload_failed') + ': ' + result.error, 'error');
+                showMessage((t('upload_failed') || '上传失败') + ': ' + result.error, 'error');
             }
         }
 
     } catch (error) {
-        showMessage(t('upload_failed') + ': ' + error.message, 'error');
+        showMessage((t('upload_failed') || '上传失败') + ': ' + error.message, 'error');
     } finally {
         isUploading = false;
         generateBtn.disabled = false;
@@ -547,16 +643,18 @@ async function generateDocument() {
 function showTaskSubmittedSuccess(taskId) {
     const content = `
         <div class="success-animation">
-            <div class="success-icon">✅</div>
-            <h3>${t('task_submitted')}</h3>
-            <p>${t('task_submitted_message')}</p>
+            <div class="success-icon">
+                <i data-feather="check-circle" style="width: 64px; height: 64px; color: var(--success-color);"></i>
+            </div>
+            <h3>${t('task_submitted') || '任务提交成功！'}</h3>
+            <p>${t('task_submitted_message') || 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。'}</p>
             <p><strong>Task ID:</strong> ${taskId}</p>
             <div id="autoReturnCountdown" style="margin-top: 1rem; color: var(--text-muted);"></div>
         </div>
     `;
 
     const actions = [{
-        text: t('return_to_list'),
+        text: t('return_to_list') || '返回列表',
         className: 'btn-primary',
         onClick: () => {
             closeGenericModal();
@@ -564,7 +662,12 @@ function showTaskSubmittedSuccess(taskId) {
         }
     }];
 
-    showModal(t('success'), content, actions, 'success');
+    showModal(t('success') || '成功', content, actions, 'success');
+
+    // 重新渲染图标
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 
     // 倒计时自动返回
     let countdown = 4;
@@ -572,7 +675,7 @@ function showTaskSubmittedSuccess(taskId) {
 
     const updateCountdown = () => {
         if (countdownElement) {
-            countdownElement.textContent = countdown + ' ' + t('auto_return_seconds');
+            countdownElement.textContent = countdown + ' ' + (t('auto_return_seconds') || '秒后自动返回');
             countdown--;
 
             if (countdown < 0) {
@@ -680,12 +783,12 @@ function createTaskElement(task) {
             </div>
             <div class="task-actions">
                 ${task.status === 'completed' && task.filename ?
-                    `<button class="btn btn-success btn-sm" onclick="downloadFile('${task.task_id}')">
+                    `<button class="btn btn-success btn-sm" onclick="downloadFile('${task.task_id}')" type="button">
                         <i data-feather="download"></i>
                         ${t('download')}
                     </button>` : ''
                 }
-                <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.task_id}')">
+                <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.task_id}')" type="button">
                     <i data-feather="trash-2"></i>
                     ${t('delete')}
                 </button>
@@ -697,6 +800,8 @@ function createTaskElement(task) {
 }
 
 async function downloadFile(taskId) {
+    console.log('下载文件:', taskId);
+
     try {
         const response = await fetch(`/api/download?task_id=${taskId}&access_key=${getAccessKey()}`);
 
@@ -711,15 +816,17 @@ async function downloadFile(taskId) {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
         } else {
-            showMessage(t('download_failed'), 'error');
+            showMessage(t('download_failed') || '下载失败', 'error');
         }
     } catch (error) {
-        showMessage(t('download_failed') + ': ' + error.message, 'error');
+        showMessage((t('download_failed') || '下载失败') + ': ' + error.message, 'error');
     }
 }
 
 function deleteTask(taskId) {
-    showConfirm(t('confirm_delete'), async () => {
+    console.log('删除任务:', taskId);
+
+    showConfirm(t('confirm_delete') || '确定要删除这个文档吗？', async () => {
         try {
             const response = await fetch(
                 `/api/delete?task_id=${taskId}&userid=${currentUser.user_id}&access_key=${getAccessKey()}`,
@@ -729,13 +836,13 @@ function deleteTask(taskId) {
             const result = await response.json();
 
             if (result.success) {
-                showMessage(t('delete_success'), 'success');
+                showMessage(t('delete_success') || '删除成功', 'success');
                 loadTasks(true);
             } else {
-                showMessage(t('delete_failed') + ': ' + result.error, 'error');
+                showMessage((t('delete_failed') || '删除失败') + ': ' + result.error, 'error');
             }
         } catch (error) {
-            showMessage(t('delete_failed') + ': ' + error.message, 'error');
+            showMessage((t('delete_failed') || '删除失败') + ': ' + error.message, 'error');
         }
 
         closeGenericModal();
@@ -743,10 +850,12 @@ function deleteTask(taskId) {
 }
 
 function editNote(taskId, element) {
+    console.log('编辑备注:', taskId);
+
     const currentNote = element.textContent;
     const input = document.createElement('input');
     input.type = 'text';
-    input.value = currentNote === t('no_note') ? '' : currentNote;
+    input.value = currentNote === (t('no_note') || '无备注') ? '' : currentNote;
     input.className = 'form-input';
     input.style.width = '100%';
 
@@ -765,14 +874,14 @@ function editNote(taskId, element) {
             const result = await response.json();
 
             if (result.success) {
-                element.textContent = input.value || t('no_note');
+                element.textContent = input.value || (t('no_note') || '无备注');
                 element.style.display = 'block';
                 input.remove();
             } else {
-                showMessage(t('update_failed'), 'error');
+                showMessage(t('update_failed') || '更新失败', 'error');
             }
         } catch (error) {
-            showMessage(t('update_failed') + ': ' + error.message, 'error');
+            showMessage((t('update_failed') || '更新失败') + ': ' + error.message, 'error');
         }
     };
 
@@ -826,7 +935,7 @@ function stopPolling() {
     }
 }
 
-// 暴露全局函数
+// 暴露全局函数（为了 onclick 事件）
 window.showLoginModal = showLoginModal;
 window.closeLoginModal = closeLoginModal;
 window.closeGenericModal = closeGenericModal;
@@ -839,3 +948,5 @@ window.verifyCode = verifyCode;
 window.handleLogout = handleLogout;
 window.generateDocument = generateDocument;
 window.loadTasks = loadTasks;
+
+console.log('JavaScript 文件加载完成');

@@ -706,6 +706,7 @@ body {
 }
 
 async function getAppJS(): Promise<string> {
+  // 这里放入上面修改后的完整 app.js 内容
   return `
 // 全局变量
 let currentLanguage = 'zh';
@@ -717,6 +718,7 @@ let pollInterval = null;
 let currentUser = null;
 let i18nData = null;
 const authApiBase = 'https://user.endlessai.org/api/auth';
+
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', function() {

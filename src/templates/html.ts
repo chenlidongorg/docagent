@@ -1,3 +1,4 @@
+// src/templates/html.ts
 export function generateHTML(): string {
   return `<!DOCTYPE html>
 <html lang="zh">
@@ -6,6 +7,8 @@ export function generateHTML(): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文档生成智能体 - Document Generation Agent</title>
     <link rel="stylesheet" href="/assets/styles.css">
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
     <style>
         /* 确保在 CSS 加载前有基本样式 */
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -20,7 +23,7 @@ export function generateHTML(): string {
             <div class="header-content">
                 <div class="logo">
                     <div class="logo-icon">
-                        <img src="/assets/logo.png" alt="Logo" onerror="this.style.display='none'; this.parentNode.innerHTML='📄'">
+                        <img src="/assets/logo.png" alt="Logo" onerror="this.style.display='none'; this.parentNode.innerHTML='<i data-feather=\'file-text\'></i>'">
                     </div>
                     <span class="logo-text" data-i18n="doc_ai_agent_short">文档智能体</span>
                 </div>
@@ -29,17 +32,17 @@ export function generateHTML(): string {
                         <div class="user-avatar" id="userAvatar"></div>
                         <span id="userEmail"></span>
                     </div>
-                    <button id="loginBtn" class="btn btn-primary">
-                        <span>📝</span>
+                    <button id="loginBtn" class="btn btn-primary" type="button">
+                        <i data-feather="log-in"></i>
                         <span data-i18n="login">登录</span>
                     </button>
-                    <button id="logoutBtn" class="btn btn-secondary hidden">
-                        <span>🚪</span>
+                    <button id="logoutBtn" class="btn btn-secondary hidden" type="button">
+                        <i data-feather="log-out"></i>
                         <span data-i18n="logout">退出</span>
                     </button>
                     <select id="languageSelect" class="lang-selector">
-                        <option value="zh">🇨🇳 中文</option>
-                        <option value="en">🇺🇸 English</option>
+                        <option value="zh">中文</option>
+                        <option value="en">English</option>
                     </select>
                 </div>
             </div>
@@ -52,13 +55,13 @@ export function generateHTML(): string {
             <!-- Upload Section -->
             <section class="upload-section">
                 <h2>
-                    <span>➕</span>
+                    <i data-feather="plus-circle"></i>
                     <span data-i18n="create_document">创建文档</span>
                 </h2>
 
                 <div class="upload-area" id="uploadArea">
                     <div class="upload-icon">
-                        <span>☁️</span>
+                        <i data-feather="upload-cloud" style="width: 48px; height: 48px;"></i>
                     </div>
                     <p data-i18n="drag_or_click">拖拽文件到此处或点击选择文件(可选)</p>
                     <p class="text-muted" data-i18n="supported_formats">支持 PDF, PNG, JPG, DOCX, PPTX, XLSX 等格式</p>
@@ -69,7 +72,7 @@ export function generateHTML(): string {
 
                 <div class="form-group">
                     <label class="form-label" for="promptInput">
-                        <span>✏️</span>
+                        <i data-feather="edit-3"></i>
                         <span data-i18n="document_requirements">文档需求描述</span>
                     </label>
                     <textarea
@@ -80,8 +83,8 @@ export function generateHTML(): string {
                 </div>
 
                 <div class="generate-btn-container">
-                    <button id="generateBtn" class="btn btn-primary btn-lg">
-                        <span>⚡</span>
+                    <button id="generateBtn" class="btn btn-primary btn-lg" type="button">
+                        <i data-feather="zap"></i>
                         <span data-i18n="generate_document_btn">开始生成</span>
                     </button>
                 </div>
@@ -91,23 +94,25 @@ export function generateHTML(): string {
             <section class="tasks-section">
                 <div class="tasks-header">
                     <h2 class="tasks-title">
-                        <span>📁</span>
+                        <i data-feather="folder"></i>
                         <span data-i18n="my_documents">我的文档</span>
                     </h2>
-                    <button id="refreshBtn" class="btn btn-secondary">
-                        <span>🔄</span>
+                    <button id="refreshBtn" class="btn btn-secondary" type="button">
+                        <i data-feather="refresh-cw"></i>
                         <span data-i18n="refresh">刷新</span>
                     </button>
                 </div>
 
                 <div id="tasksList"></div>
                 <div id="noTasks" class="text-center text-muted hidden">
-                    <div style="font-size: 48px; margin-bottom: 1rem; opacity: 0.5;">📭</div>
+                    <div style="font-size: 48px; margin-bottom: 1rem; opacity: 0.5;">
+                        <i data-feather="inbox" style="width: 64px; height: 64px;"></i>
+                    </div>
                     <p data-i18n="no_document_records">暂无文档记录</p>
                 </div>
                 <div id="loadMoreContainer" class="text-center">
-                    <button id="loadMoreBtn" class="btn btn-secondary hidden">
-                        <span>⬇️</span>
+                    <button id="loadMoreBtn" class="btn btn-secondary hidden" type="button">
+                        <i data-feather="chevron-down"></i>
                         <span data-i18n="load_more">加载更多</span>
                     </button>
                 </div>
@@ -119,7 +124,7 @@ export function generateHTML(): string {
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <span>©</span>
+                <i data-feather="copyright"></i>
                 <span>2025 Endless AI LLC.</span>
                 <span data-i18n="copyright">版权所有</span>
             </div>
@@ -131,11 +136,11 @@ export function generateHTML(): string {
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">
-                    <span>👤</span>
+                    <i data-feather="user"></i>
                     <span data-i18n="login_required">请先登录</span>
                 </h3>
-                <button class="modal-close" onclick="closeLoginModal()">
-                    <span>×</span>
+                <button class="modal-close" type="button" onclick="closeLoginModal()">
+                    <i data-feather="x"></i>
                 </button>
             </div>
             <div class="modal-body">
@@ -143,7 +148,7 @@ export function generateHTML(): string {
                     <div id="emailStep">
                         <div class="form-group">
                             <label class="form-label" for="loginEmail">
-                                <span>📧</span>
+                                <i data-feather="mail"></i>
                                 <span data-i18n="email">邮箱</span>
                             </label>
                             <input
@@ -153,8 +158,8 @@ export function generateHTML(): string {
                                 data-i18n-placeholder="email_placeholder"
                                 placeholder="请输入您的邮箱地址">
                         </div>
-                        <button id="sendCodeBtn" class="btn btn-primary">
-                            <span>📤</span>
+                        <button id="sendCodeBtn" class="btn btn-primary" type="button">
+                            <i data-feather="send"></i>
                             <span data-i18n="send_verification">发送验证码</span>
                         </button>
                     </div>
@@ -162,7 +167,7 @@ export function generateHTML(): string {
                     <div id="codeStep" class="hidden">
                         <div class="form-group">
                             <label class="form-label" for="loginCode">
-                                <span>🔑</span>
+                                <i data-feather="key"></i>
                                 <span data-i18n="verification_code">验证码</span>
                             </label>
                             <input
@@ -173,12 +178,12 @@ export function generateHTML(): string {
                                 placeholder="请输入6位验证码"
                                 maxlength="6">
                         </div>
-                        <button id="verifyCodeBtn" class="btn btn-success">
-                            <span>✅</span>
+                        <button id="verifyCodeBtn" class="btn btn-success" type="button">
+                            <i data-feather="check"></i>
                             <span data-i18n="verify_code">验证登录</span>
                         </button>
-                        <button id="backToEmailBtn" class="btn btn-secondary">
-                            <span>⬅️</span>
+                        <button id="backToEmailBtn" class="btn btn-secondary" type="button">
+                            <i data-feather="arrow-left"></i>
                             <span data-i18n="back">返回</span>
                         </button>
                     </div>
@@ -192,8 +197,8 @@ export function generateHTML(): string {
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" id="genericModalTitle"></h3>
-                <button class="modal-close" onclick="closeGenericModal()">
-                    <span>×</span>
+                <button class="modal-close" type="button" onclick="closeGenericModal()">
+                    <i data-feather="x"></i>
                 </button>
             </div>
             <div class="modal-body" id="genericModalBody"></div>
@@ -207,6 +212,11 @@ export function generateHTML(): string {
         // 确保 JavaScript 正确加载
         document.addEventListener('DOMContentLoaded', function() {
             console.log('页面加载完成');
+
+            // 渲染图标
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
 
             // 检查是否有错误
             window.addEventListener('error', function(e) {
