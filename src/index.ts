@@ -1,15 +1,18 @@
+// src/index.ts 合理且安全的示例代码
+import { CloudflareEnv } from './types';
+import { createOptionsResponse } from './utils/response';
+import { generateHTML } from './templates/html';
+import { handleUpload } from './handlers/upload';
+import { handleTasks, handleUpdateNote, handleDelete, handleHasPending, handleCheckPending, handleCleanupTask, handleStatus } from './handlers/tasks';
+import { handleDownload, handleDownloadWithData } from './handlers/download';
+
 export default {
   async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // 处理 OPTIONS 请求...
+    // OPTIONS
     if (request.method === 'OPTIONS') return createOptionsResponse();
-
-    // 🔥 删除下面这几行代码
-    // if (path.startsWith('/assets/')) {
-    //   return handleAssets(request, env);
-    // }
 
     switch (path) {
       case '/': return new Response(generateHTML(), { headers: { 'Content-Type': 'text/html; charset=utf-8' }});
