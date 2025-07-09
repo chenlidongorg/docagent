@@ -802,7 +802,7 @@ async function generateDocument() {
     const generateBtn = document.getElementById('generateBtn');
     const originalText = generateBtn.textContent;
     generateBtn.disabled = true;
-    generateBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>' + t('uploading') + currentUser.user_id + currentUser.token + '</div>';
+    generateBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>' + t('uploading') + '</div>';
 
     try {
         const formData = new FormData();

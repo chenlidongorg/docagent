@@ -22,7 +22,7 @@ export async function handleUpload(
 
     if (!userToken) {
 
-      return createErrorResponse('缺少用户认证信息 ，请重新登录', 401);
+      return createErrorResponse('xxx缺少用户认证信息 ，请重新登录', 401);
     }
 
     // 处理上传的文件
