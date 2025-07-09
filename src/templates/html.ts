@@ -15,7 +15,7 @@ export function generateHTML(): string {
         .loading { opacity: 0.6; }
     </style>
 </head>
-<body>
+<body>handleAssets
     <!-- Header -->
     <header class="header">
         <div class="container">

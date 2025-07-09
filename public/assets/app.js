@@ -853,6 +853,8 @@ async function generateDocument() {
     generateBtn.disabled = true;
     generateBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>' + t('uploading') + '</div>';
 
+
+
     try {
         const formData = new FormData();
         formData.append('user_prompt', prompt);

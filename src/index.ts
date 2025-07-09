@@ -1,7 +1,7 @@
 import { CloudflareEnv } from './types';
 import { createOptionsResponse } from './utils/response';
 import { checkAccess, handleUnauthorizedPage } from './handlers/auth';
-import { handleAssets } from './handlers/assets';
+//import { handleAssets } from './handlers/assets';
 import { handleUpload } from './handlers/upload';
 import { handleTasks, handleUpdateNote, handleDelete, handleStatus, handleCheckPending, handleHasPending, handleCleanupTask } from './handlers/tasks';
 import { handleDownload, handleDownloadWithData } from './handlers/download';
@@ -18,9 +18,9 @@ export default {
     }
 
     // 处理静态资源
-    if (path.startsWith('/assets/')) {
-      return handleAssets(request, env);
-    }
+   // if (path.startsWith('/assets/')) {
+      //return handleAssets(request, env);
+   // }
 
     // 🔥 完全移除访问权限检查
     // const authError = checkAccess(request, env);
