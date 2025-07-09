@@ -781,21 +781,12 @@ function initEventListeners() {
 // 🔥 修改任务管理方法 - 确保正确发送用户信息
 async function generateDocument() {
 
-   if (!currentUser.token) {
-       loadUserFromStorage();
-    }
-
-
-    showMessage(t('currentUser token：' + currentUser.token), 'warning');
-
-
     // 🔑 检查登录状态
     if (!currentUser.token) {
         console.log('用户未登录，显示登录框');
         showLoginModal();
         return;
     }
-
 
     const promptInput = document.getElementById('promptInput');
     const prompt = promptInput ? promptInput.value.trim() : '';
@@ -817,9 +808,10 @@ async function generateDocument() {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
 
-        // 🔑 关键修改：确保正确添加用户认证信息
         formData.append('user_token', currentUser.token);
 
+showMessage(currentUser.token, 'error');
+return
         selectedFiles.forEach((file, index) => {
             formData.append('file_' + index, file);
         });
