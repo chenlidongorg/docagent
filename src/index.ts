@@ -40,9 +40,6 @@ export default {
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
         });
 
-      case '/api/i18n':
-        return handleI18n(request, env);
-
       case '/api/upload':
         return handleUpload(request, env, ctx);
 

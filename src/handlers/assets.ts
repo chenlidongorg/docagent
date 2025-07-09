@@ -4,7 +4,6 @@ export async function handleAssets(request: Request, env: CloudflareEnv): Promis
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // 处理静态资源
   if (path === '/assets/styles.css') {
     const css = await getStylesCSS();
     return new Response(css, {
@@ -54,6 +53,8 @@ async function getStylesCSS(): Promise<string> {
     --info-color: #3b82f6;
     --shadow-color: rgba(0, 0, 0, 0.3);
     --backdrop-filter: blur(10px);
+    --cooldown-bg: #6b7280;
+    --cooldown-hover: #4b5563;
 }
 
 @media (prefers-color-scheme: light) {
@@ -67,6 +68,8 @@ async function getStylesCSS(): Promise<string> {
         --text-muted: rgba(30, 41, 59, 0.6);
         --text-placeholder: #94a3b8;
         --shadow-color: rgba(0, 0, 0, 0.1);
+        --cooldown-bg: #9ca3af;
+        --cooldown-hover: #6b7280;
     }
 }
 
@@ -199,9 +202,22 @@ body {
     align-items: center;
     gap: 0.5rem;
     text-decoration: none;
-    background: none;
-    outline: none;
-    user-select: none;
+}
+
+.btn i {
+    width: 16px;
+    height: 16px;
+    margin-right: 0.5rem;
+}
+
+.btn-sm i {
+    width: 14px;
+    height: 14px;
+}
+
+.btn-lg i {
+    width: 18px;
+    height: 18px;
 }
 
 .btn-primary {
@@ -242,6 +258,13 @@ body {
     background: var(--success-hover);
 }
 
+.btn-cooldown {
+    background: linear-gradient(135deg, var(--cooldown-bg), var(--cooldown-hover));
+    color: white;
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
 .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -256,23 +279,6 @@ body {
 .btn-sm {
     padding: 0.25rem 0.5rem;
     font-size: 0.8rem;
-}
-
-/* 按钮图标样式 */
-.btn svg {
-    width: 16px;
-    height: 16px;
-    margin-right: 0.5rem;
-}
-
-.btn-sm svg {
-    width: 14px;
-    height: 14px;
-}
-
-.btn-lg svg {
-    width: 18px;
-    height: 18px;
 }
 
 /* Main Content */
@@ -326,6 +332,11 @@ body {
     opacity: 0.6;
 }
 
+.upload-icon i {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
 .file-input {
     display: none;
 }
@@ -359,6 +370,12 @@ body {
     font-size: 0.9rem;
 }
 
+.file-item .btn i {
+    width: 12px;
+    height: 12px;
+    margin-right: 0;
+}
+
 /* Form Styles */
 .form-group {
     margin-bottom: 1.5rem;
@@ -371,6 +388,10 @@ body {
     margin-bottom: 0.5rem;
     font-weight: 500;
     color: var(--text-primary);
+}
+
+.form-label i {
+    margin-right: 0.5rem;
 }
 
 .form-input {
@@ -428,6 +449,10 @@ body {
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--text-primary);
+}
+
+.tasks-title i {
+    margin-right: 0.5rem;
 }
 
 .task-item {
@@ -509,6 +534,11 @@ body {
     gap: 0.5rem;
 }
 
+.task-actions .btn i {
+    width: 14px;
+    height: 14px;
+}
+
 .progress-bar {
     width: 100%;
     height: 4px;
@@ -579,6 +609,10 @@ body {
     color: var(--text-primary);
 }
 
+.modal-title i {
+    margin-right: 0.5rem;
+}
+
 .modal-close {
     background: none;
     border: none;
@@ -600,6 +634,10 @@ body {
     display: flex;
     gap: 1rem;
     justify-content: flex-end;
+}
+
+.modal-content button {
+    cursor: pointer;
 }
 
 /* Loading Animation */
@@ -641,6 +679,11 @@ body {
     60% { transform: translateY(-5px); }
 }
 
+.success-animation .success-icon {
+    margin-bottom: 1rem;
+    animation: bounce 0.6s ease-in-out;
+}
+
 /* Login Form */
 .login-form {
     max-width: 400px;
@@ -678,6 +721,11 @@ body {
     justify-content: center;
     align-items: center;
     gap: 0.5rem;
+}
+
+/* Task item inline buttons */
+.task-item [onclick] {
+    cursor: pointer;
 }
 
 /* Utility Classes */
@@ -742,15 +790,178 @@ let hasMoreTasks = false;
 let pollInterval = null;
 let currentUser = null;
 let i18nData = null;
+let hasActiveTasks = false;
+let smartPollingTimer = null;
+let pendingCheckTimer = null;
+let clientCooldownEndTime = 0;
+let cooldownTimer = null;
+let isEventListenersInitialized = false;
+let autoReturnTimer = null;
+
 const authApiBase = 'https://user.endlessai.org/api/auth';
+
+// 任务状态定义
+const TaskStatus = {
+    CREATED: 'created',
+    AI_THINKING: 'ai_thinking',
+    PROCESSING: 'processing',
+    COMPLETED: 'completed',
+    FAILED: 'failed'
+};
+
+// 统一的国际化配置
+const i18nConfig = {
+    zh: {
+        doc_ai_agent: '文档生成智能体',
+        doc_ai_agent_short: '文档智能体',
+        login: '登录',
+        logout: '退出',
+        login_required: '请先登录',
+        login_success: '登录成功',
+        logout_success: '已退出登录',
+        send_verification: '发送验证码',
+        verify_code: '验证登录',
+        email: '邮箱',
+        verification_code: '验证码',
+        email_placeholder: '请输入您的邮箱地址',
+        code_placeholder: '请输入6位验证码',
+        code_sent_message: '验证码已发送到您的邮箱，请查收',
+        create_document: '创建文档',
+        drag_or_click: '拖拽文件到此处或点击选择文件(可选)',
+        supported_formats: '支持 PDF, PNG, JPG, DOCX, PPTX, XLSX 等格式',
+        document_requirements: '文档需求描述',
+        requirements_placeholder: '请描述您希望生成的文档内容和格式要求（如未上传文件则必填）...',
+        generate_document_btn: '开始生成',
+        uploading: '上传中...',
+        my_documents: '我的文档',
+        no_document_records: '暂无文档记录',
+        load_more: '加载更多',
+        refresh: '刷新',
+        download: '下载',
+        delete: '删除',
+        no_note: '无备注',
+        task_submitted: '任务提交成功！',
+        task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。',
+        return_to_list: '返回列表',
+        auto_return_seconds: '秒后自动返回',
+        upload_failed: '上传失败',
+        download_failed: '下载失败',
+        delete_failed: '删除失败',
+        update_failed: '更新失败',
+        delete_success: '删除成功',
+        file_too_large: '文件过大，最大支持50MB',
+        files_or_prompt_required: '请上传文件或描述您的文档需求',
+        cooldown_wait_hint: '请求过于频繁，请稍后再试',
+        confirm_delete: '确定要删除这个文档吗？',
+        confirm: '确定',
+        cancel: '取消',
+        ok: '好的',
+        success: '成功',
+        error: '错误',
+        warning: '警告',
+        info: '提示',
+        copyright: '版权所有',
+        format_pptx: 'PPT演示',
+        format_pdf: 'PDF文档',
+        format_docx: 'Word文档',
+        format_xlsx: 'Excel表格',
+        format_png: '图片',
+        format_md: 'Markdown',
+        format_html: '网页',
+        format_json: 'JSON',
+        format_unknown: '未知格式',
+        back: '返回',
+        processing: '处理中',
+        completed: '已完成',
+        failed: '失败'
+    },
+    en: {
+        doc_ai_agent: 'Document Generation Agent',
+        doc_ai_agent_short: 'Doc Agent',
+        login: 'Login',
+        logout: 'Logout',
+        login_required: 'Login Required',
+        login_success: 'Login successful',
+        logout_success: 'Logged out successfully',
+        send_verification: 'Send Code',
+        verify_code: 'Verify Login',
+        email: 'Email',
+        verification_code: 'Verification Code',
+        email_placeholder: 'Please enter your email address',
+        code_placeholder: 'Please enter 6-digit code',
+        code_sent_message: 'Verification code has been sent to your email',
+        create_document: 'Create Document',
+        drag_or_click: 'Drag files here or click to select (optional)',
+        supported_formats: 'Supports PDF, PNG, JPG, DOCX, PPTX, XLSX formats',
+        document_requirements: 'Document Requirements',
+        requirements_placeholder: 'Please describe the content and format requirements for your document (required if no files uploaded)...',
+        generate_document_btn: 'Start Generate',
+        uploading: 'Uploading...',
+        my_documents: 'My Documents',
+        no_document_records: 'No document records',
+        load_more: 'Load More',
+        refresh: 'Refresh',
+        download: 'Download',
+        delete: 'Delete',
+        no_note: 'No note',
+        task_submitted: 'Task Submitted Successfully!',
+        task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format. The task has been queued for processing, you can leave the page and check results later.',
+        return_to_list: 'Return to List',
+        auto_return_seconds: 's until auto return',
+        upload_failed: 'Upload failed',
+        download_failed: 'Download failed',
+        delete_failed: 'Delete failed',
+        update_failed: 'Update failed',
+        delete_success: 'Delete successful',
+        file_too_large: 'File too large, maximum 50MB supported',
+        files_or_prompt_required: 'Please upload files or describe your document requirements',
+        cooldown_wait_hint: 'Too frequent requests, please try again later',
+        confirm_delete: 'Are you sure you want to delete this document?',
+        confirm: 'Confirm',
+        cancel: 'Cancel',
+        ok: 'OK',
+        success: 'Success',
+        error: 'Error',
+        warning: 'Warning',
+        info: 'Info',
+        copyright: 'All rights reserved',
+        format_pptx: 'PPT',
+        format_pdf: 'PDF',
+        format_docx: 'Word',
+        format_xlsx: 'Excel',
+        format_png: 'Image',
+        format_md: 'Markdown',
+        format_html: 'HTML',
+        format_json: 'JSON',
+        format_unknown: 'Unknown',
+        back: 'Back',
+        processing: 'Processing',
+        completed: 'Completed',
+        failed: 'Failed'
+    }
+};
 
 // 辅助函数：为 API 路径添加 access_key
 function apiUrl(path) {
     const accessKey = getAccessKey();
     if (!accessKey) return path;
-
     const separator = path.includes('?') ? '&' : '?';
     return path + separator + 'access_key=' + encodeURIComponent(accessKey);
+}
+
+// 获取访问密钥
+function getAccessKey() {
+    return new URLSearchParams(window.location.search).get('access_key');
+}
+
+// 获取用户ID
+function getUserId() {
+    return new URLSearchParams(window.location.search).get('userid');
+}
+
+// 翻译函数
+function t(key) {
+    return i18nConfig[currentLanguage][key] || key;
 }
 
 // 初始化应用
@@ -768,8 +979,14 @@ async function initApp() {
         return;
     }
 
-    // 加载国际化配置
-    await loadI18n();
+    // 检查用户ID
+    if (!getUserId()) {
+        document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供用户ID</h2></div>';
+        return;
+    }
+
+    // 使用内置的国际化配置
+    i18nData = i18nConfig;
 
     // 初始化语言
     const savedLanguage = localStorage.getItem('docagent_language') || 'zh';
@@ -790,151 +1007,17 @@ async function initApp() {
     setTimeout(() => {
         initFileUpload();
         initEventListeners();
+
+        // 加载任务列表
+        if (currentUser) {
+            loadTasks();
+        }
+
+        // 启动智能轮询
+        startSmartPolling();
     }, 100);
 
-    // 加载任务列表
-    if (currentUser) {
-        loadTasks();
-    }
-
     console.log('应用初始化完成');
-}
-
-async function loadI18n() {
-    try {
-        const response = await fetch(apiUrl('/api/i18n'));
-        if (response.ok) {
-            i18nData = await response.json();
-            console.log('国际化配置加载成功');
-        } else {
-            throw new Error(\`HTTP \${response.status}\`);
-        }
-    } catch (error) {
-        console.error('Failed to load i18n:', error);
-        // 提供默认的 i18n 配置
-        i18nData = {
-            zh: {
-                doc_ai_agent: '文档生成智能体',
-                doc_ai_agent_short: '文档智能体',
-                login: '登录',
-                logout: '退出',
-                login_required: '请先登录',
-                login_success: '登录成功',
-                logout_success: '已退出登录',
-                send_verification: '发送验证码',
-                verify_code: '验证登录',
-                email: '邮箱',
-                verification_code: '验证码',
-                code_sent_message: '验证码已发送到您的邮箱，请查收',
-                create_document: '创建文档',
-                drag_or_click: '拖拽文件到此处或点击选择文件(可选)',
-                supported_formats: '支持 PDF, PNG, JPG, DOCX, PPTX, XLSX 等格式',
-                document_requirements: '文档需求描述',
-                requirements_placeholder: '请描述您希望生成的文档内容和格式要求（如未上传文件则必填）...',
-                generate_document_btn: '开始生成',
-                uploading: '上传中...',
-                my_documents: '我的文档',
-                no_document_records: '暂无文档记录',
-                load_more: '加载更多',
-                refresh: '刷新',
-                download: '下载',
-                delete: '删除',
-                no_note: '无备注',
-                task_submitted: '任务提交成功！',
-                task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。',
-                return_to_list: '返回列表',
-                auto_return_seconds: '秒后自动返回',
-                upload_failed: '上传失败',
-                download_failed: '下载失败',
-                delete_failed: '删除失败',
-                update_failed: '更新失败',
-                delete_success: '删除成功',
-                file_too_large: '文件过大，最大支持50MB',
-                files_or_prompt_required: '请上传文件或描述您的文档需求',
-                cooldown_wait_hint: '请求过于频繁，请稍后再试',
-                confirm_delete: '确定要删除这个文档吗？',
-                confirm: '确定',
-                cancel: '取消',
-                ok: '好的',
-                success: '成功',
-                error: '错误',
-                warning: '警告',
-                info: '提示',
-                copyright: '版权所有',
-                format_pptx: 'PPT演示',
-                format_pdf: 'PDF文档',
-                format_docx: 'Word文档',
-                format_xlsx: 'Excel表格',
-                format_png: '图片',
-                format_md: 'Markdown',
-                format_html: '网页',
-                format_json: 'JSON',
-                format_unknown: '未知格式'
-            },
-            en: {
-                doc_ai_agent: 'Document Generation Agent',
-                doc_ai_agent_short: 'Doc Agent',
-                login: 'Login',
-                logout: 'Logout',
-                login_required: 'Login Required',
-                login_success: 'Login successful',
-                logout_success: 'Logged out successfully',
-                send_verification: 'Send Code',
-                verify_code: 'Verify Login',
-                email: 'Email',
-                verification_code: 'Verification Code',
-                code_sent_message: 'Verification code has been sent to your email',
-                create_document: 'Create Document',
-                drag_or_click: 'Drag files here or click to select (optional)',
-                supported_formats: 'Supports PDF, PNG, JPG, DOCX, PPTX, XLSX formats',
-                document_requirements: 'Document Requirements',
-                requirements_placeholder: 'Please describe the content and format requirements for your document (required if no files uploaded)...',
-                generate_document_btn: 'Start Generate',
-                uploading: 'Uploading...',
-                my_documents: 'My Documents',
-                no_document_records: 'No document records',
-                load_more: 'Load More',
-                refresh: 'Refresh',
-                download: 'Download',
-                delete: 'Delete',
-                no_note: 'No note',
-                task_submitted: 'Task Submitted Successfully!',
-                task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format. The task has been queued for processing, you can leave the page and check results later.',
-                return_to_list: 'Return to List',
-                auto_return_seconds: 's until auto return',
-                upload_failed: 'Upload failed',
-                download_failed: 'Download failed',
-                delete_failed: 'Delete failed',
-                update_failed: 'Update failed',
-                delete_success: 'Delete successful',
-                file_too_large: 'File too large, maximum 50MB supported',
-                files_or_prompt_required: 'Please upload files or describe your document requirements',
-                cooldown_wait_hint: 'Too frequent requests, please try again later',
-                confirm_delete: 'Are you sure you want to delete this document?',
-                confirm: 'Confirm',
-                cancel: 'Cancel',
-                ok: 'OK',
-                success: 'Success',
-                error: 'Error',
-                warning: 'Warning',
-                info: 'Info',
-                copyright: 'All rights reserved',
-                format_pptx: 'PPT',
-                format_pdf: 'PDF',
-                format_docx: 'Word',
-                format_xlsx: 'Excel',
-                format_png: 'Image',
-                format_md: 'Markdown',
-                format_html: 'HTML',
-                format_json: 'JSON',
-                format_unknown: 'Unknown'
-            }
-        };
-    }
-}
-
-function t(key) {
-    return i18nData[currentLanguage][key] || key;
 }
 
 function updateLanguage() {
@@ -947,10 +1030,6 @@ function updateLanguage() {
         const key = element.getAttribute('data-i18n-placeholder');
         element.placeholder = t(key);
     });
-}
-
-function getAccessKey() {
-    return new URLSearchParams(window.location.search).get('access_key');
 }
 
 // 认证相关方法
@@ -998,8 +1077,6 @@ function updateUserUI() {
 
 // 登录相关函数
 async function sendVerificationCode() {
-    console.log('发送验证码函数被调用');
-
     const email = document.getElementById('loginEmail').value.trim();
     if (!email) {
         showMessage('请输入邮箱地址', 'error');
@@ -1037,8 +1114,6 @@ async function sendVerificationCode() {
 }
 
 async function verifyCode() {
-    console.log('验证码验证函数被调用');
-
     const email = document.getElementById('loginEmail').value.trim();
     const code = document.getElementById('loginCode').value.trim();
 
@@ -1087,8 +1162,6 @@ async function verifyCode() {
 }
 
 async function handleLogout() {
-    console.log('退出登录函数被调用');
-
     if (currentUser && currentUser.token) {
         try {
             await fetch(authApiBase + '/logout', {
@@ -1126,12 +1199,9 @@ function initFileUpload() {
         return;
     }
 
-    console.log('初始化文件上传功能');
-
     uploadArea.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('点击上传区域');
         fileInput.click();
     });
 
@@ -1162,8 +1232,6 @@ function initFileUpload() {
 }
 
 function handleFileSelection(files) {
-    console.log('处理文件选择:', files.length);
-
     files.forEach(file => {
         if (file.size > 50 * 1024 * 1024) {
             showMessage(t('file_too_large'), 'error');
@@ -1195,17 +1263,18 @@ function updateFileList() {
                 <span class="file-size">(\${formatFileSize(file.size)})</span>
             </div>
             <button class="btn btn-sm btn-danger" onclick="removeFile(\${index})" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <i data-feather="x"></i>
             </button>
         </div>
     \`).join('');
+
+    // 重新渲染图标
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 }
 
 function removeFile(index) {
-    console.log('删除文件:', index);
     selectedFiles.splice(index, 1);
     updateFileList();
 }
@@ -1245,6 +1314,11 @@ function showModal(title, content, actions = [], type = 'info') {
     });
 
     modal.classList.add('show');
+
+    // 重新渲染图标
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 }
 
 function closeGenericModal() {
@@ -1253,7 +1327,6 @@ function closeGenericModal() {
 }
 
 function showLoginModal() {
-    console.log('显示登录模态框');
     const modal = document.getElementById('loginModal');
     if (modal) {
         modal.classList.add('show');
@@ -1305,13 +1378,10 @@ function requireLogin() {
 
 // 事件监听器初始化
 function initEventListeners() {
-    console.log('初始化事件监听器...');
-
     // 语言切换
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function(e) {
-            console.log('语言切换:', e.target.value);
             currentLanguage = e.target.value;
             localStorage.setItem('docagent_language', currentLanguage);
             updateLanguage();
@@ -1323,7 +1393,6 @@ function initEventListeners() {
     if (loginBtn) {
         loginBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('登录按钮被点击');
             showLoginModal();
         });
     }
@@ -1333,7 +1402,6 @@ function initEventListeners() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('退出按钮被点击');
             handleLogout();
         });
     }
@@ -1343,7 +1411,6 @@ function initEventListeners() {
     if (sendCodeBtn) {
         sendCodeBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('发送验证码按钮被点击');
             sendVerificationCode();
         });
     }
@@ -1353,7 +1420,6 @@ function initEventListeners() {
     if (verifyCodeBtn) {
         verifyCodeBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('验证码按钮被点击');
             verifyCode();
         });
     }
@@ -1363,7 +1429,6 @@ function initEventListeners() {
     if (backToEmailBtn) {
         backToEmailBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('返回按钮被点击');
             document.getElementById('emailStep').classList.remove('hidden');
             document.getElementById('codeStep').classList.add('hidden');
         });
@@ -1374,7 +1439,6 @@ function initEventListeners() {
     if (generateBtn) {
         generateBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('生成按钮被点击');
             generateDocument();
         });
     }
@@ -1384,7 +1448,6 @@ function initEventListeners() {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('刷新按钮被点击');
             loadTasks(true);
         });
     }
@@ -1394,7 +1457,6 @@ function initEventListeners() {
     if (loadMoreBtn) {
         loadMoreBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('加载更多按钮被点击');
             currentPage++;
             loadTasks();
         });
@@ -1403,7 +1465,6 @@ function initEventListeners() {
     // 模态框背景点击关闭
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('modal')) {
-            console.log('点击模态框背景关闭');
             e.target.classList.remove('show');
         }
     });
@@ -1437,14 +1498,10 @@ function initEventListeners() {
             }
         });
     }
-
-    console.log('事件监听器初始化完成');
 }
 
 // 任务管理方法
 async function generateDocument() {
-    console.log('开始生成文档...');
-
     if (!requireLogin()) return;
 
     const promptInput = document.getElementById('promptInput');
@@ -1461,12 +1518,12 @@ async function generateDocument() {
     const generateBtn = document.getElementById('generateBtn');
     const originalText = generateBtn.textContent;
     generateBtn.disabled = true;
-    generateBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>' + (t('uploading') || '上传中...') + '</div>';
+    generateBtn.innerHTML = '<div class="loading"><div class="loading-spinner"></div>' + t('uploading') + '</div>';
 
     try {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
-        formData.append('userid', currentUser.user_id);
+        formData.append('userid', getUserId());
 
         selectedFiles.forEach((file, index) => {
             formData.append('file_' + index, file);
@@ -1480,7 +1537,7 @@ async function generateDocument() {
         const result = await response.json();
 
         if (result.success) {
-            showTaskSubmittedSuccess(result.data.task_id);
+            showTaskSubmittedSuccess(result.task_id);
             selectedFiles = [];
             updateFileList();
             if (promptInput) promptInput.value = '';
@@ -1488,12 +1545,12 @@ async function generateDocument() {
             if (result.error === 'COOLDOWN_ACTIVE') {
                 showMessage(t('cooldown_wait_hint'), 'warning');
             } else {
-                showMessage((t('upload_failed') || '上传失败') + ': ' + result.error, 'error');
+                showMessage(t('upload_failed') + ': ' + result.error, 'error');
             }
         }
 
     } catch (error) {
-        showMessage((t('upload_failed') || '上传失败') + ': ' + error.message, 'error');
+        showMessage(t('upload_failed') + ': ' + error.message, 'error');
     } finally {
         isUploading = false;
         generateBtn.disabled = false;
@@ -1505,20 +1562,17 @@ function showTaskSubmittedSuccess(taskId) {
     const content = \`
         <div class="success-animation">
             <div class="success-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 12l2 2 4-4"></path>
-                    <circle cx="12" cy="12" r="9"></circle>
-                </svg>
+                <i data-feather="check-circle" style="width: 64px; height: 64px; color: var(--success-color);"></i>
             </div>
-            <h3>\${t('task_submitted') || '任务提交成功！'}</h3>
-            <p>\${t('task_submitted_message') || 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。'}</p>
+            <h3>\${t('task_submitted')}</h3>
+            <p>\${t('task_submitted_message')}</p>
             <p><strong>Task ID:</strong> \${taskId}</p>
             <div id="autoReturnCountdown" style="margin-top: 1rem; color: var(--text-muted);"></div>
         </div>
     \`;
 
     const actions = [{
-        text: t('return_to_list') || '返回列表',
+        text: t('return_to_list'),
         className: 'btn-primary',
         onClick: () => {
             closeGenericModal();
@@ -1526,7 +1580,12 @@ function showTaskSubmittedSuccess(taskId) {
         }
     }];
 
-    showModal(t('success') || '成功', content, actions, 'success');
+    showModal(t('success'), content, actions, 'success');
+
+    // 重新渲染图标
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 
     // 倒计时自动返回
     let countdown = 4;
@@ -1534,7 +1593,7 @@ function showTaskSubmittedSuccess(taskId) {
 
     const updateCountdown = () => {
         if (countdownElement) {
-            countdownElement.textContent = countdown + ' ' + (t('auto_return_seconds') || '秒后自动返回');
+            countdownElement.textContent = countdown + ' ' + t('auto_return_seconds');
             countdown--;
 
             if (countdown < 0) {
@@ -1551,10 +1610,6 @@ function showTaskSubmittedSuccess(taskId) {
 
 // 任务加载函数
 async function loadTasks(reset = false) {
-    if (!currentUser) return;
-
-    console.log('加载任务列表...');
-
     if (reset) {
         currentPage = 1;
         const tasksList = document.getElementById('tasksList');
@@ -1563,7 +1618,7 @@ async function loadTasks(reset = false) {
 
     try {
         const response = await fetch(
-            apiUrl(\`/api/tasks?userid=\${currentUser.user_id}&page=\${currentPage}&limit=10\`)
+            apiUrl(\`/api/tasks?userid=\${getUserId()}&page=\${currentPage}&limit=10\`)
         );
 
         const result = await response.json();
@@ -1609,6 +1664,11 @@ async function loadTasks(reset = false) {
             } else {
                 stopPolling();
             }
+
+            // 重新渲染图标
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
         }
 
     } catch (error) {
@@ -1638,21 +1698,12 @@ function createTaskElement(task) {
             <div class="task-actions">
                 \${task.status === 'completed' && task.filename ?
                     \`<button class="btn btn-success btn-sm" onclick="downloadFile('\${task.task_id}')" type="button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7,10 12,15 17,10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
+                        <i data-feather="download"></i>
                         \${t('download')}
                     </button>\` : ''
                 }
                 <button class="btn btn-danger btn-sm" onclick="deleteTask('\${task.task_id}')" type="button">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3,6 5,6 21,6"></polyline>
-                        <path d="m19,6v14a2,2 0 0 1-2,2H7a2,2 0 0 1-2-2V6m3,0V4a2,2 0 0 1,2-2h4a2,2 0 0 1,2,2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
+                    <i data-feather="trash-2"></i>
                     \${t('delete')}
                 </button>
             </div>
@@ -1663,8 +1714,6 @@ function createTaskElement(task) {
 }
 
 async function downloadFile(taskId) {
-    console.log('下载文件:', taskId);
-
     try {
         const response = await fetch(apiUrl(\`/api/download?task_id=\${taskId}\`));
 
@@ -1679,33 +1728,31 @@ async function downloadFile(taskId) {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
         } else {
-            showMessage(t('download_failed') || '下载失败', 'error');
+            showMessage(t('download_failed'), 'error');
         }
     } catch (error) {
-        showMessage((t('download_failed') || '下载失败') + ': ' + error.message, 'error');
+        showMessage(t('download_failed') + ': ' + error.message, 'error');
     }
 }
 
 function deleteTask(taskId) {
-    console.log('删除任务:', taskId);
-
-    showConfirm(t('confirm_delete') || '确定要删除这个文档吗？', async () => {
+    showConfirm(t('confirm_delete'), async () => {
         try {
             const response = await fetch(
-                apiUrl(\`/api/delete?task_id=\${taskId}&userid=\${currentUser.user_id}\`),
+                apiUrl(\`/api/delete?task_id=\${taskId}&userid=\${getUserId()}\`),
                 { method: 'DELETE' }
             );
 
             const result = await response.json();
 
             if (result.success) {
-                showMessage(t('delete_success') || '删除成功', 'success');
+                showMessage(t('delete_success'), 'success');
                 loadTasks(true);
             } else {
-                showMessage((t('delete_failed') || '删除失败') + ': ' + result.error, 'error');
+                showMessage(t('delete_failed') + ': ' + result.error, 'error');
             }
         } catch (error) {
-            showMessage((t('delete_failed') || '删除失败') + ': ' + error.message, 'error');
+            showMessage(t('delete_failed') + ': ' + error.message, 'error');
         }
 
         closeGenericModal();
@@ -1713,12 +1760,10 @@ function deleteTask(taskId) {
 }
 
 function editNote(taskId, element) {
-    console.log('编辑备注:', taskId);
-
     const currentNote = element.textContent;
     const input = document.createElement('input');
     input.type = 'text';
-    input.value = currentNote === (t('no_note') || '无备注') ? '' : currentNote;
+    input.value = currentNote === t('no_note') ? '' : currentNote;
     input.className = 'form-input';
     input.style.width = '100%';
 
@@ -1730,21 +1775,21 @@ function editNote(taskId, element) {
                 body: JSON.stringify({
                     task_id: taskId,
                     note: input.value,
-                    userid: currentUser.user_id
+                    userid: getUserId()
                 })
             });
 
             const result = await response.json();
 
             if (result.success) {
-                element.textContent = input.value || (t('no_note') || '无备注');
+                element.textContent = input.value || t('no_note');
                 element.style.display = 'block';
                 input.remove();
             } else {
-                showMessage(t('update_failed') || '更新失败', 'error');
+                showMessage(t('update_failed'), 'error');
             }
         } catch (error) {
-            showMessage((t('update_failed') || '更新失败') + ': ' + error.message, 'error');
+            showMessage(t('update_failed') + ': ' + error.message, 'error');
         }
     };
 
@@ -1773,11 +1818,11 @@ function startPolling() {
     if (pollInterval) return;
 
     pollInterval = setInterval(async () => {
-        if (!currentUser) return;
+        if (!getUserId()) return;
 
         try {
             const response = await fetch(
-                apiUrl(\`/api/check-pending?userid=\${currentUser.user_id}\`)
+                apiUrl(\`/api/check-pending?userid=\${getUserId()}\`)
             );
 
             const result = await response.json();
@@ -1798,7 +1843,55 @@ function stopPolling() {
     }
 }
 
-// 暴露全局函数（为了 onclick 事件）
+// 智能轮询系统
+function startSmartPolling() {
+    // 每30秒检查一次是否有待处理任务
+    pendingCheckTimer = setInterval(async () => {
+        try {
+            const response = await fetch(apiUrl(\`/api/has-pending?userid=\${getUserId()}\`));
+            const result = await response.json();
+
+            if (result.success) {
+                const hadActiveTasks = hasActiveTasks;
+                hasActiveTasks = result.has_pending;
+
+                if (hasActiveTasks && !hadActiveTasks) {
+                    startFrequentPolling();
+                } else if (!hasActiveTasks && hadActiveTasks) {
+                    stopFrequentPolling();
+                }
+            }
+        } catch (error) {
+            // 忽略错误
+        }
+    }, 30000);
+}
+
+function startFrequentPolling() {
+    if (smartPollingTimer) return;
+
+    smartPollingTimer = setInterval(async () => {
+        try {
+            const response = await fetch(apiUrl(\`/api/check-pending?userid=\${getUserId()}\`));
+            const result = await response.json();
+
+            if (result.success && result.data.updated_tasks > 0) {
+                loadTasks(true);
+            }
+        } catch (error) {
+            // 忽略错误
+        }
+    }, 10000);
+}
+
+function stopFrequentPolling() {
+    if (smartPollingTimer) {
+        clearInterval(smartPollingTimer);
+        smartPollingTimer = null;
+    }
+}
+
+// 暴露全局函数
 window.showLoginModal = showLoginModal;
 window.closeLoginModal = closeLoginModal;
 window.closeGenericModal = closeGenericModal;

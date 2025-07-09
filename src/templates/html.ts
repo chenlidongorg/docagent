@@ -1,4 +1,3 @@
-// src/templates/html.ts
 export function generateHTML(): string {
   return `<!DOCTYPE html>
 <html lang="zh">
@@ -23,7 +22,7 @@ export function generateHTML(): string {
             <div class="header-content">
                 <div class="logo">
                     <div class="logo-icon">
-                        <img src="/assets/logo.png" alt="Logo" onerror="this.style.display='none'; this.parentNode.innerHTML='<i data-feather=\'file-text\'></i>'">
+                        <img src="/assets/logo.png" alt="Logo" onerror="this.style.display='none'; this.parentNode.innerHTML='<i data-feather=\\'file-text\\'></i>'">
                     </div>
                     <span class="logo-text" data-i18n="doc_ai_agent_short">文档智能体</span>
                 </div>
