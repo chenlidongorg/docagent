@@ -3,7 +3,6 @@ export interface CloudflareEnv {
   PPT_AI_AGENT_API_KEY: string;
   D1: D1Database;
   R2: R2Bucket;
-  ASSETS?: Fetcher; // 🔥 可选的静态资源绑定
 }
 
 export interface TaskData {

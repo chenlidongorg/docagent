@@ -221,7 +221,7 @@ async function initApp() {
         languageSelect.value = currentLanguage;
     }
 
-    updateUserUI();  //
+    updateUserUI();  // 这里会调用updateTokenDebugInfo()
     updateLanguage();
 
     // 等待DOM完全准备好后再初始化事件
@@ -279,7 +279,24 @@ function loadUserFromStorage() {
     return false;
 }
 
+// 🔥 添加更新Token显示的函数
+function updateTokenDebugInfo() {
+    const tokenStatus = document.getElementById('tokenStatus');
+    const tokenValue = document.getElementById('tokenValue');
+    const userIdStatus = document.getElementById('userIdStatus');
 
+    if (!tokenStatus || !tokenValue || !userIdStatus) return;
+
+    if (currentUser && currentUser.token) {
+        tokenStatus.textContent = 'Token状态: 已获取';
+        tokenValue.textContent = `Token值: ${currentUser.token.substring(0, 30)}...`;
+        userIdStatus.textContent = `用户ID: ${currentUser.user_id || '未解析'}`;
+    } else {
+        tokenStatus.textContent = 'Token状态: 未登录';
+        tokenValue.textContent = 'Token值: 无';
+        userIdStatus.textContent = '用户ID: 无';
+    }
+}
 
 // 🔥 修改updateUserUI函数，添加token显示更新
 function updateUserUI() {
@@ -305,7 +322,8 @@ function updateUserUI() {
         if (userInfo) userInfo.classList.add('hidden');
     }
 
-
+    // 🔥 更新token显示
+    updateTokenDebugInfo();
 }
 
 // 登录相关函数
@@ -800,6 +818,25 @@ async function generateDocument() {
             return;
         }
 
+    /*
+    // 🔑 严格检查登录状态
+        if (!currentUser) {
+            console.log('❌ 用户未登录');
+            showLoginModal();
+            return;
+        }
+
+        if (!currentUser.token) {
+            console.log('❌ 用户token缺失');
+            showMessage('登录状态异常，请重新登录', 'error');
+            currentUser = null;
+            localStorage.removeItem('docagent_user');
+            updateUserUI();
+            showLoginModal();
+            return;
+        }
+    */
+
     const promptInput = document.getElementById('promptInput');
     const prompt = promptInput ? promptInput.value.trim() : '';
 
@@ -826,7 +863,6 @@ async function generateDocument() {
             formData.append('file_' + index, file);
             console.log(`🔥 添加文件 ${index}:`, file.name);
         });
-
 
         console.log('🔥 开始发送请求到 /api/upload');
 
