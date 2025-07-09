@@ -1,7 +1,24 @@
+// ========== src/utils/i18n.ts ==========
 export const i18nConfig = {
   zh: {
+    // 原有配置...
     doc_ai_agent: '文档生成智能体',
     doc_ai_agent_short: '文档智能体',
+
+    // 新增登录相关
+    login: '登录',
+    logout: '退出',
+    login_required: '请先登录',
+    login_required_message: '您需要登录后才能使用文档生成服务',
+    login_success: '登录成功',
+    logout_success: '已退出登录',
+    user_info: '用户信息',
+    login_loading: '登录中...',
+    login_failed: '登录失败',
+    login_cancelled: '登录已取消',
+    session_expired: '登录已过期，请重新登录',
+
+    // 其他原有配置...
     submitting: '任务提交中',
     uploading: '正在上传文件并创建任务...',
     create_document: '创建文档',
@@ -59,8 +76,24 @@ export const i18nConfig = {
     technical_details: '技术细节'
   },
   en: {
+    // 原有配置...
     doc_ai_agent: 'Document Generation Agent',
     doc_ai_agent_short: 'Doc Agent',
+
+    // 新增登录相关
+    login: 'Login',
+    logout: 'Logout',
+    login_required: 'Login Required',
+    login_required_message: 'You need to login to use the document generation service',
+    login_success: 'Login successful',
+    logout_success: 'Logged out successfully',
+    user_info: 'User Info',
+    login_loading: 'Logging in...',
+    login_failed: 'Login failed',
+    login_cancelled: 'Login cancelled',
+    session_expired: 'Session expired, please login again',
+
+    // 其他原有配置...
     submitting: 'Submitting Task',
     uploading: 'Uploading files and creating task...',
     create_document: 'Create Document',

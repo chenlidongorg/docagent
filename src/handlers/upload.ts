@@ -1,3 +1,4 @@
+// ========== src/handlers/upload.ts ==========
 import { CloudflareEnv, FileData, UploadRequest } from '@/types';
 import { createErrorResponse, createSuccessResponse } from '@/utils/response';
 import { arrayBufferToBase64 } from '@/utils/helpers';
@@ -20,6 +21,9 @@ export async function handleUpload(
     if (!userId) {
       return createErrorResponse('VALIDATION_ERROR', 400);
     }
+
+    // 验证用户token（这里可以添加token验证逻辑）
+    // 由于登录系统是外部的，我们暂时使用userid作为标识
 
     // 处理上传的文件
     let fileCount = 0;

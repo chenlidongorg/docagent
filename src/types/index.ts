@@ -1,3 +1,4 @@
+// ========== src/types/index.ts ==========
 export interface CloudflareEnv {
   PPT_AI_AGENT_API_KEY: string;
   ACCESS_KEY: string;
@@ -48,6 +49,16 @@ export interface UploadRequest {
     secret_key: string;
     endpoint: string;
   };
+}
+
+export interface UserInfo {
+  token: string;
+  user_id: string;
+  email: string;
+  username?: string;
+  avatar?: string;
+  created_at?: number;
+  expires_at?: number;
 }
 
 export const TaskStatus = {
