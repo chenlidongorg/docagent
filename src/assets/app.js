@@ -780,6 +780,14 @@ function initEventListeners() {
 
 // 🔥 修改任务管理方法 - 确保正确发送用户信息
 async function generateDocument() {
+
+    //强制重新加载用户信息
+    if (!currentUser) {
+        loadUserFromStorage();
+        console.log('重新加载后的currentUser:', currentUser);
+    }
+
+    
     // 🔑 检查登录状态
     if (!currentUser || !currentUser.token) {
         console.log('用户未登录，显示登录对话框');
