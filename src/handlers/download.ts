@@ -1,6 +1,9 @@
-import { CloudflareEnv } from '@/types';
-import { createErrorResponse, createSuccessResponse } from '@/utils/response';
-import { arrayBufferToBase64 } from '@/utils/helpers';
+// ========== src/handlers/download.ts ==========
+import { CloudflareEnv } from '../types';
+import { createErrorResponse, createSuccessResponse } from '../utils/response';
+import { arrayBufferToBase64 } from '../utils/helpers';
+
+// ... 其余代码保持不变
 
 export async function handleDownload(
   request: Request,

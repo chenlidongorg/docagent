@@ -1,7 +1,9 @@
 // ========== src/handlers/upload.ts ==========
-import { CloudflareEnv, FileData, UploadRequest } from '@/types';
-import { createErrorResponse, createSuccessResponse } from '@/utils/response';
-import { arrayBufferToBase64 } from '@/utils/helpers';
+import { CloudflareEnv, FileData, UploadRequest } from '../types';
+import { createErrorResponse, createSuccessResponse } from '../utils/response';
+import { arrayBufferToBase64 } from '../utils/helpers';
+
+// ... 其余代码保持不变
 
 export async function handleUpload(
   request: Request,

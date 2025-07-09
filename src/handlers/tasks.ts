@@ -1,7 +1,9 @@
-import { CloudflareEnv, TaskStatus, TaskStatusType } from '@/types';
-import { createErrorResponse, createSuccessResponse } from '@/utils/response';
-import { updateTaskStatus, updateTaskWithFilename } from '@/utils/helpers';
+// ========== src/handlers/tasks.ts ==========
+import { CloudflareEnv, TaskStatus, TaskStatusType } from '../types';
+import { createErrorResponse, createSuccessResponse } from '../utils/response';
+import { updateTaskStatus, updateTaskWithFilename } from '../utils/helpers';
 
+// ... 其余代码保持不变
 export async function handleTasks(
   request: Request,
   env: CloudflareEnv,

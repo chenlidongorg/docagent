@@ -1,4 +1,5 @@
-import { ApiResponse } from '@/types';
+// ========== src/utils/response.ts ==========
+import { ApiResponse } from '../types';
 
 export function createResponse<T>(data: ApiResponse<T>, status: number = 200, headers: HeadersInit = {}) {
   const corsHeaders = {

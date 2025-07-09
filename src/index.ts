@@ -1,12 +1,12 @@
 // ========== src/index.ts ==========
-import { CloudflareEnv } from '@/types';
-import { createOptionsResponse } from '@/utils/response';
-import { checkAccess, handleUnauthorizedPage } from '@/handlers/auth';
-import { handleUpload } from '@/handlers/upload';
-import { handleTasks, handleUpdateNote, handleDelete, handleStatus, handleCheckPending, handleHasPending, handleCleanupTask } from '@/handlers/tasks';
-import { handleDownload, handleDownloadWithData } from '@/handlers/download';
-import { handleI18n } from '@/handlers/i18n';
-import { generateHTML } from '@/templates/html';
+import { CloudflareEnv } from './types';
+import { createOptionsResponse } from './utils/response';
+import { checkAccess, handleUnauthorizedPage } from './handlers/auth';
+import { handleUpload } from './handlers/upload';
+import { handleTasks, handleUpdateNote, handleDelete, handleStatus, handleCheckPending, handleHasPending, handleCleanupTask } from './handlers/tasks';
+import { handleDownload, handleDownloadWithData } from './handlers/download';
+import { handleI18n } from './handlers/i18n';
+import { generateHTML } from './templates/html';
 
 export default {
   async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {

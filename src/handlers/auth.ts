@@ -1,5 +1,6 @@
-import { CloudflareEnv } from '@/types';
-import { createErrorResponse } from '@/utils/response';
+// ========== src/handlers/auth.ts ==========
+import { CloudflareEnv } from '../types';
+import { createErrorResponse } from '../utils/response';
 
 export function checkAccess(request: Request, env: CloudflareEnv): Response | null {
   const url = new URL(request.url);
