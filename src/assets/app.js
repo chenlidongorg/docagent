@@ -192,10 +192,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initApp();
 });
 
+// 🔥 修改initApp函数，确保初始化时更新token显示
 async function initApp() {
     console.log('初始化应用...');
-
-    // 🔥 移除所有访问权限检查，直接初始化
 
     // 加载用户信息
     loadUserFromStorage();
@@ -211,7 +210,7 @@ async function initApp() {
         languageSelect.value = currentLanguage;
     }
 
-    updateUserUI();
+    updateUserUI();  // 这里会调用updateTokenDebugInfo()
     updateLanguage();
 
     // 等待DOM完全准备好后再初始化事件
@@ -270,6 +269,26 @@ function loadUserFromStorage() {
     return false;
 }
 
+// 🔥 添加更新Token显示的函数
+function updateTokenDebugInfo() {
+    const tokenStatus = document.getElementById('tokenStatus');
+    const tokenValue = document.getElementById('tokenValue');
+    const userIdStatus = document.getElementById('userIdStatus');
+
+    if (!tokenStatus || !tokenValue || !userIdStatus) return;
+
+    if (currentUser && currentUser.token) {
+        tokenStatus.textContent = 'Token状态: 已获取';
+        tokenValue.textContent = `Token值: ${currentUser.token.substring(0, 30)}...`;
+        userIdStatus.textContent = `用户ID: ${currentUser.user_id || '未解析'}`;
+    } else {
+        tokenStatus.textContent = 'Token状态: 未登录';
+        tokenValue.textContent = 'Token值: 无';
+        userIdStatus.textContent = '用户ID: 无';
+    }
+}
+
+// 🔥 修改updateUserUI函数，添加token显示更新
 function updateUserUI() {
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
@@ -292,6 +311,9 @@ function updateUserUI() {
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (userInfo) userInfo.classList.add('hidden');
     }
+
+    // 🔥 更新token显示
+    updateTokenDebugInfo();
 }
 
 // 登录相关函数
@@ -332,6 +354,7 @@ async function sendVerificationCode() {
     }
 }
 
+// 🔥 修改verifyCode函数，确保登录成功后立即更新token显示
 async function verifyCode() {
     const email = document.getElementById('loginEmail').value.trim();
     const code = document.getElementById('loginCode').value.trim();
@@ -771,11 +794,12 @@ function initEventListeners() {
     console.log('事件监听器初始化完成');
 }
 
-// 🔥 修改任务管理方法 - 确保正确发送用户信息
-async function generateDocument() {
 
+
+// 🔥 修改generateDocument函数，确保token正确发送
+async function generateDocument() {
     // 🔑 检查登录状态
-    if (!currentUser.token) {
+    if (!currentUser || !currentUser.token) {
         console.log('用户未登录，显示登录框');
         showLoginModal();
         return;
@@ -800,7 +824,16 @@ async function generateDocument() {
     try {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
+
+        // 🔥 确保token正确发送
+        console.log('🔥 发送前检查token:', {
+            hasCurrentUser: !!currentUser,
+            hasToken: !!(currentUser && currentUser.token),
+            tokenLength: currentUser && currentUser.token ? currentUser.token.length : 0
+        });
+
         formData.append('user_token', currentUser.token);
+
         selectedFiles.forEach((file, index) => {
             formData.append('file_' + index, file);
         });
@@ -880,6 +913,7 @@ async function generateDocument() {
         generateBtn.textContent = originalText;
     }
 }
+
 
 function showTaskSubmittedSuccess(taskId) {
     const content = `

@@ -20,9 +20,14 @@ export async function handleUpload(
     // 🔥 从表单中获取token
     const userToken = formData.get('user_token') as string;
 
-    if (!userToken) {
+    console.log('🔥 上传请求调试信息:');
+    console.log('- userToken 是否存在:', !!userToken);
+    console.log('- userToken 长度:', userToken ? userToken.length : 0);
+    console.log('- userToken 前20个字符:', userToken ? userToken.substring(0, 20) + '...' : 'null');
+    console.log('- userPrompt:', userPrompt);
 
-      return createErrorResponse(t('缺少用户认证信息 ，请重新登录'), 401);
+    if (!userToken) {
+      return createErrorResponse('缺少用户认证信息，请重新登录', 401);
     }
 
     // 处理上传的文件
@@ -55,15 +60,18 @@ export async function handleUpload(
       return createErrorResponse('请上传文件或描述您的文档需求', 400);
     }
 
-    // 🔥 简化的请求体 - 直接通过请求体发送所有信息
+    // 🔥 请求体 - 发送userToken作为user_id
     const requestBody: UploadRequest = {
       files: files,
       user_prompt: userPrompt,
-      user_id: userToken         // 🔑 发送 加密的userToken 因为里面 包含 user_id
+      user_id: userToken  // 🔑 发送加密的userToken
     };
 
+    console.log('🔥 发送到智能体服务器的请求体:');
+    console.log('- files数量:', files.length);
+    console.log('- user_prompt长度:', userPrompt.length);
+    //console.log('- user_id存在:', !!requestBody.user_id);
 
-    // 🔥 不需要特殊的请求头，只发送标准的Content-Type和API-Key
     const response = await fetch('https://docapi.endlessai.org/api/v1/ppt/generate', {
       method: 'POST',
       headers: {
@@ -104,9 +112,21 @@ export async function handleUpload(
       return createErrorResponse(errorMessage, response.status);
     }
 
-    // 🔥 保存任务到数据库
+    // 🔥 保存任务到数据库 - 从userToken中提取user_id
     if (result.success && result.task_id) {
       try {
+        // 🔥 从token中提取user_id（假设token包含用户信息）
+        let userId = userToken;
+
+        // 如果token是JSON格式，尝试解析
+        try {
+          const tokenData = JSON.parse(atob(userToken.split('.')[1] || ''));
+          userId = tokenData.user_id || tokenData.id || userToken;
+        } catch (e) {
+          // 如果解析失败，直接使用token
+          userId = userToken;
+        }
+
         const stmt = env.D1.prepare(`
           INSERT INTO pptaiagent (taskid, userid, filename, note, createat, status, hasdeleted)
           VALUES (?, ?, '', ?, ?, 'processing', 0)

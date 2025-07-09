@@ -13,6 +13,15 @@ export function generateHTML(): string {
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .hidden { display: none !important; }
         .loading { opacity: 0.6; }
+        .debug-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            color: #888;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -79,6 +88,14 @@ export function generateHTML(): string {
                         class="form-input form-textarea"
                         data-i18n-placeholder="requirements_placeholder"
                         placeholder="请描述您希望生成的文档内容和格式要求（如未上传文件则必填）..."></textarea>
+
+                    <!-- 🔥 添加Token显示区域 -->
+                    <div id="tokenDebugInfo" class="debug-info">
+                        <strong>调试信息:</strong><br>
+                        <span id="tokenStatus">Token状态: 检查中...</span><br>
+                        <span id="tokenValue">Token值: 未获取</span><br>
+                        <span id="userIdStatus">用户ID: 未获取</span>
+                    </div>
                 </div>
 
                 <div class="generate-btn-container">
