@@ -810,7 +810,7 @@ async function generateDocument() {
 
         formData.append('user_token', currentUser.token);
 
-showMessage(currentUser.token, 'error');
+showMessage('currentUser' + currentUser.token, 'error');
 return
         selectedFiles.forEach((file, index) => {
             formData.append('file_' + index, file);
