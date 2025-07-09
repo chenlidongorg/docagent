@@ -39,7 +39,7 @@ export async function handleUpload(
 
     if (!userToken) {
       console.log('❌ 缺少用户认证信息');
-      return createErrorResponse('缺少用户认证信息，请重新登录', 401);
+      return createErrorResponse('像星星缺少用户认证信息，请重新登录', 401);
     }
 
     // 处理上传的文件

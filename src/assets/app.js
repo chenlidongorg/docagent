@@ -825,7 +825,7 @@ async function generateDocument() {
             showLoginModal();
             return;
         }
-    
+
         if (!currentUser.token) {
             console.log('❌ 用户token缺失');
             showMessage('登录状态异常，请重新登录', 'error');
@@ -856,9 +856,6 @@ async function generateDocument() {
     try {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
-
-
-
         formData.append('user_token', getUserToken());
 
         // 添加文件
@@ -868,6 +865,8 @@ async function generateDocument() {
         });
 
         console.log('🔥 开始发送请求到 /api/upload');
+
+        console.log("准备发送的请求数据:", Array.from(formData.entries())); // 看formData中数据是什么
 
         const response = await fetch('/api/upload', {
             method: 'POST',
