@@ -1,11 +1,6 @@
 // ========== src/types/index.ts ==========
 export interface CloudflareEnv {
   PPT_AI_AGENT_API_KEY: string;
-  ACCESS_KEY: string;
-  BUCKET_NAME: string;
-  R2_ACCESS_KEY: string;
-  R2_SECRET_KEY: string;
-  R2_ENDPOINT: string;
   D1: D1Database;
   R2: R2Bucket;
 }
@@ -36,20 +31,7 @@ export interface FileData {
 export interface UploadRequest {
   files: FileData[];
   user_prompt: string;
-  user_token: string; // 🔑 添加token字段
-  user_id: string;
-  constraints: {
-    max_slides: number;
-    include_animations: boolean;
-    language: string;
-  };
-  storage: {
-    type: string;
-    bucket: string;
-    access_key: string;
-    secret_key: string;
-    endpoint: string;
-  };
+  user_id: string; //string = user_token //发送加密的 user_id
 }
 
 export interface UserInfo {

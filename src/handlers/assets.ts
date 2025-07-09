@@ -941,22 +941,25 @@ const i18nConfig = {
     }
 };
 
-// 辅助函数：为 API 路径添加 access_key
+// 辅助函数：直接返回API路径
 function apiUrl(path) {
-    const accessKey = getAccessKey();
-    if (!accessKey) return path;
-    const separator = path.includes('?') ? '&' : '?';
-    return path + separator + 'access_key=' + encodeURIComponent(accessKey);
+    return path;
 }
 
-// 获取访问密钥
-function getAccessKey() {
-    return new URLSearchParams(window.location.search).get('access_key');
-}
-
-// 获取用户ID
+// 获取用户ID从登录状态
 function getUserId() {
-    return new URLSearchParams(window.location.search).get('userid');
+    if (currentUser && currentUser.user_id) {
+        return currentUser.user_id;
+    }
+    return null;
+}
+
+// 获取用户Token
+function getUserToken() {
+    if (currentUser && currentUser.token) {
+        return currentUser.token;
+    }
+    return null;
 }
 
 // 翻译函数

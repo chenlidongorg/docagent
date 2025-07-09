@@ -779,11 +779,10 @@ function initEventListeners() {
 }
 
 // 🔥 修改任务管理方法 - 确保正确发送用户信息
-// 在 generateDocument 函数中找到这部分并替换：
-
 async function generateDocument() {
     // 🔑 检查登录状态
     if (!currentUser || !currentUser.token) {
+        console.log('用户未登录，显示登录框');
         showLoginModal();
         return;
     }
@@ -808,12 +807,12 @@ async function generateDocument() {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
 
-        // 🔑 关键修改：发送token和user_id
+        // 🔑 关键修改：确保正确添加用户认证信息
         formData.append('user_token', currentUser.token);
         formData.append('user_id', currentUser.user_id);
 
         console.log('发送的用户信息:', {
-            user_token: currentUser.token ? '有token' : '无token',
+            user_token: currentUser.token ? '有token(长度:' + currentUser.token.length + ')' : '无token',
             user_id: currentUser.user_id,
             file_count: selectedFiles.length
         });
