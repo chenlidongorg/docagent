@@ -3,21 +3,18 @@ import { CloudflareEnv, TaskStatus, TaskStatusType } from '../types';
 import { createErrorResponse, createSuccessResponse } from '../utils/response';
 import { updateTaskStatus, updateTaskWithFilename } from '../utils/helpers';
 
-// ... 其余代码保持不变
 export async function handleTasks(
   request: Request,
   env: CloudflareEnv,
   ctx: ExecutionContext
 ): Promise<Response> {
   const url = new URL(request.url);
-  const userId = url.searchParams.get('userid');
-  const page = parseInt(url.searchParams.get('page') || '1');
-  const limit = parseInt(url.searchParams.get('limit') || '10');
-  const offset = (page - 1) * limit;
+  const userId = url.searchParams.get('userid'); // 这里应该是登录系统的user_id
 
   if (!userId) {
     return createErrorResponse('Missing userid parameter', 400);
   }
+
 
   try {
     // 获取总数

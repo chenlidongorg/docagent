@@ -1,10 +1,3 @@
-// ========== src/handlers/upload.ts ==========
-import { CloudflareEnv, FileData, UploadRequest } from '../types';
-import { createErrorResponse, createSuccessResponse } from '../utils/response';
-import { arrayBufferToBase64 } from '../utils/helpers';
-
-// ... 其余代码保持不变
-
 export async function handleUpload(
   request: Request,
   env: CloudflareEnv,
@@ -18,18 +11,17 @@ export async function handleUpload(
     const formData = await request.formData();
     const files: FileData[] = [];
     const userPrompt = formData.get('user_prompt') as string || '';
-    const userId = formData.get('userid') as string;
 
-    if (!userId) {
-      return createErrorResponse('VALIDATION_ERROR', 400);
+    // 🔥 关键修改：从表单中获取token而不是userid
+    const userToken = formData.get('user_token') as string;
+    const userId = formData.get('user_id') as string; // 登录系统的user_id
+
+    if (!userToken || !userId) {
+      return createErrorResponse('VALIDATION_ERROR - Missing user authentication', 400);
     }
-
-    // 验证用户token（这里可以添加token验证逻辑）
-    // 由于登录系统是外部的，我们暂时使用userid作为标识
 
     // 处理上传的文件
     let fileCount = 0;
-
     for (const [key, value] of formData.entries()) {
       if (key.startsWith('file_') && value instanceof File) {
         if (value.size > 50 * 1024 * 1024) {
@@ -60,10 +52,12 @@ export async function handleUpload(
     const baseCharge = 1;
     const totalCharge = baseCharge + fileCount;
 
+    // 🔥 关键修改：发送token给文件生成智能体服务
     const requestBody: UploadRequest = {
       files: files,
       user_prompt: userPrompt,
-      user_id: userId,
+      user_token: userToken, // 🔑 发送加密token
+      user_id: userId,       // 🔑 用于标识用户
       constraints: {
         max_slides: 20,
         include_animations: true,
@@ -101,7 +95,7 @@ export async function handleUpload(
       return createErrorResponse(`HTTP_${response.status}`, response.status);
     }
 
-    // 保存任务到数据库
+    // 🔥 关键修改：保存任务时使用登录系统的user_id
     if (result.success && result.task_id) {
       try {
         const stmt = env.D1.prepare(`
@@ -110,7 +104,7 @@ export async function handleUpload(
         `);
         await stmt.bind(
           result.task_id,
-          userId,
+          userId, // 🔑 使用登录系统的user_id
           result.message || 'AI智能体正在处理任务',
           Date.now()
         ).run();
