@@ -248,18 +248,11 @@ function updateLanguage() {
 // 认证相关方法
 function loadUserFromStorage() {
     const userStr = localStorage.getItem('docagent_user');
-    console.log('从localStorage加载用户信息:', userStr ? '有数据' : '无数据');
 
     if (userStr) {
         try {
             const user = JSON.parse(userStr);
-            console.log('解析的用户数据:', {
-                hasToken: !!user.token,
-                hasUserId: !!user.user_id,
-                email: user.email,
-                expiresAt: user.expires_at,
-                isExpired: user.expires_at ? user.expires_at <= Date.now() : 'no_expiry'
-            });
+
 
             if (user.expires_at && user.expires_at > Date.now()) {
                 currentUser = user;
@@ -807,7 +800,7 @@ async function generateDocument() {
     try {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
-        formData.append('user_token', currentUser.token);
+        formData.append('user_token', currentUser.user_id);
         selectedFiles.forEach((file, index) => {
             formData.append('file_' + index, file);
         });
