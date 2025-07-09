@@ -780,14 +780,18 @@ function initEventListeners() {
 
 // 🔥 修改任务管理方法 - 确保正确发送用户信息
 async function generateDocument() {
+
+   if (!currentUser.token) {
+
+       loadUserFromStorage();
+    }
+
     // 🔑 检查登录状态
     if (!currentUser.token) {
         console.log('用户未登录，显示登录框');
         showLoginModal();
         return;
     }
-
-    showMessage(t(currentUser.token), 'error');
 
     const promptInput = document.getElementById('promptInput');
     const prompt = promptInput ? promptInput.value.trim() : '';
