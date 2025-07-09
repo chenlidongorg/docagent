@@ -173,7 +173,13 @@ function getAccessKey() {
 }
 
 // 获取用户ID
+// 修改获取用户ID函数
 function getUserId() {
+    // 优先使用登录用户信息
+    if (currentUser && currentUser.user_id) {
+        return currentUser.user_id;
+    }
+    // fallback 到 URL 参数
     return new URLSearchParams(window.location.search).get('userid');
 }
 
@@ -197,9 +203,18 @@ async function initApp() {
         return;
     }
 
-    // 检查用户ID
-    if (!getUserId()) {
-        document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供用户ID</h2></div>';
+    // 加载用户信息
+    loadUserFromStorage();
+
+    // 如果没有登录用户且没有URL中的userid，要求登录
+    if (!currentUser && !new URLSearchParams(window.location.search).get('userid')) {
+        updateUserUI();
+        updateLanguage();
+        setTimeout(() => {
+            initFileUpload();
+            initEventListeners();
+        }, 100);
+        showLoginModal();
         return;
     }
 
@@ -214,11 +229,7 @@ async function initApp() {
         languageSelect.value = currentLanguage;
     }
 
-    // 加载用户信息
-    loadUserFromStorage();
     updateUserUI();
-
-    // 初始化UI
     updateLanguage();
 
     // 等待DOM完全准备好后再初始化事件
@@ -227,7 +238,7 @@ async function initApp() {
         initEventListeners();
 
         // 加载任务列表
-        if (currentUser) {
+        if (currentUser || getUserId()) {
             loadTasks();
         }
 
@@ -417,10 +428,17 @@ function initFileUpload() {
         return;
     }
 
+    // 修复点击事件
     uploadArea.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('点击上传区域，触发文件选择');
         fileInput.click();
+    });
+
+    // 确保文件输入框也能正常工作
+    fileInput.addEventListener('click', (e) => {
+        e.stopPropagation();
     });
 
     uploadArea.addEventListener('dragover', (e) => {
@@ -444,6 +462,7 @@ function initFileUpload() {
     });
 
     fileInput.addEventListener('change', (e) => {
+        console.log('文件选择变更，选中文件数量:', e.target.files.length);
         const files = Array.from(e.target.files);
         handleFileSelection(files);
     });
@@ -720,7 +739,10 @@ function initEventListeners() {
 
 // 任务管理方法
 async function generateDocument() {
-    if (!requireLogin()) return;
+    if (!getUserId()) {
+        showLoginModal();
+        return;
+    }
 
     const promptInput = document.getElementById('promptInput');
     const prompt = promptInput ? promptInput.value.trim() : '';
@@ -759,6 +781,8 @@ async function generateDocument() {
             selectedFiles = [];
             updateFileList();
             if (promptInput) promptInput.value = '';
+            // 立即刷新任务列表
+            setTimeout(() => loadTasks(true), 1000);
         } else {
             if (result.error === 'COOLDOWN_ACTIVE') {
                 showMessage(t('cooldown_wait_hint'), 'warning');
@@ -794,7 +818,9 @@ function showTaskSubmittedSuccess(taskId) {
         className: 'btn-primary',
         onClick: () => {
             closeGenericModal();
-            loadTasks();
+            loadTasks(true);
+            // 立即开始轮询
+            startPolling();
         }
     }];
 
@@ -804,6 +830,12 @@ function showTaskSubmittedSuccess(taskId) {
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
+
+    // 立即刷新任务列表并开始轮询
+    setTimeout(() => {
+        loadTasks(true);
+        startPolling();
+    }, 500);
 
     // 倒计时自动返回
     let countdown = 4;
@@ -816,7 +848,8 @@ function showTaskSubmittedSuccess(taskId) {
 
             if (countdown < 0) {
                 closeGenericModal();
-                loadTasks();
+                loadTasks(true);
+                startPolling();
                 return;
             }
         }
@@ -1033,40 +1066,41 @@ function editNote(taskId, element) {
 
 // 轮询管理
 function startPolling() {
-    if (pollInterval) return;
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
 
+    console.log('开始轮询任务状态...');
     pollInterval = setInterval(async () => {
-        if (!getUserId()) return;
+        const userId = getUserId();
+        if (!userId) return;
 
         try {
             const response = await fetch(
-                apiUrl(`/api/check-pending?userid=${getUserId()}`)
+                apiUrl(`/api/check-pending?userid=${userId}`)
             );
 
             const result = await response.json();
 
             if (result.success && result.data.updated_tasks > 0) {
+                console.log('检测到任务状态更新，刷新列表');
                 loadTasks(true);
             }
         } catch (error) {
-            console.error('Polling error:', error);
+            console.error('轮询错误:', error);
         }
-    }, 5000);
+    }, 3000); // 提高轮询频率到3秒
 }
 
-function stopPolling() {
-    if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
-    }
-}
-
-// 智能轮询系统
+// 修改智能轮询函数
 function startSmartPolling() {
     // 每30秒检查一次是否有待处理任务
     pendingCheckTimer = setInterval(async () => {
+        const userId = getUserId();
+        if (!userId) return;
+
         try {
-            const response = await fetch(apiUrl(`/api/has-pending?userid=${getUserId()}`));
+            const response = await fetch(apiUrl(`/api/has-pending?userid=${userId}`));
             const result = await response.json();
 
             if (result.success) {
@@ -1074,8 +1108,10 @@ function startSmartPolling() {
                 hasActiveTasks = result.has_pending;
 
                 if (hasActiveTasks && !hadActiveTasks) {
+                    console.log('检测到新的待处理任务，启动频繁轮询');
                     startFrequentPolling();
                 } else if (!hasActiveTasks && hadActiveTasks) {
+                    console.log('所有任务完成，停止频繁轮询');
                     stopFrequentPolling();
                 }
             }
@@ -1085,21 +1121,27 @@ function startSmartPolling() {
     }, 30000);
 }
 
+// 修改频繁轮询函数
 function startFrequentPolling() {
     if (smartPollingTimer) return;
 
+    console.log('启动频繁轮询...');
     smartPollingTimer = setInterval(async () => {
+        const userId = getUserId();
+        if (!userId) return;
+
         try {
-            const response = await fetch(apiUrl(`/api/check-pending?userid=${getUserId()}`));
+            const response = await fetch(apiUrl(`/api/check-pending?userid=${userId}`));
             const result = await response.json();
 
             if (result.success && result.data.updated_tasks > 0) {
+                console.log('频繁轮询检测到更新');
                 loadTasks(true);
             }
         } catch (error) {
-            // 忽略错误
+            console.error('频繁轮询错误:', error);
         }
-    }, 10000);
+    }, 5000); // 5秒频繁轮询
 }
 
 function stopFrequentPolling() {
