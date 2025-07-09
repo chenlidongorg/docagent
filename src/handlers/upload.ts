@@ -1,8 +1,3 @@
-// ========== src/handlers/upload.ts ==========
-import { CloudflareEnv, FileData, UploadRequest } from '../types';
-import { createErrorResponse, createSuccessResponse } from '../utils/response';
-import { arrayBufferToBase64 } from '../utils/helpers';
-
 export async function handleUpload(
   request: Request,
   env: CloudflareEnv,
@@ -21,16 +16,29 @@ export async function handleUpload(
     const userToken = formData.get('user_token') as string;
     const userId = formData.get('user_id') as string;
 
-    console.log('上传请求验证:', {
+    console.log('📤 收到上传请求:', {
       hasToken: !!userToken,
       hasUserId: !!userId,
       tokenLength: userToken ? userToken.length : 0,
-      userId: userId
+      userId: userId,
+      promptLength: userPrompt.length,
+      formDataKeys: Array.from(formData.keys())
     });
 
-    if (!userToken || !userId) {
-      console.log('认证失败: 缺少token或userId');
-      return createErrorResponse('缺少用户认证信息，请重新登录', 400);
+    if (!userToken) {
+      console.log('❌ 认证失败: 缺少user_token');
+      return createErrorResponse('缺少用户Token，请重新登录', 400);
+    }
+
+    if (!userId) {
+      console.log('❌ 认证失败: 缺少user_id');
+      return createErrorResponse('缺少用户ID，请重新登录', 400);
+    }
+
+    // 🔥 可选：验证token格式（如果你知道token的基本格式）
+    if (userToken.length < 10) {
+      console.log('❌ Token格式异常:', userToken.length);
+      return createErrorResponse('Token格式异常，请重新登录', 400);
     }
 
     // 处理上传的文件
@@ -53,7 +61,7 @@ export async function handleUpload(
 
           fileCount++;
         } catch (error) {
-          console.log('文件处理错误:', error);
+          console.log('❌ 文件处理错误:', error);
           return createErrorResponse('文件处理失败', 400);
         }
       }
@@ -86,10 +94,11 @@ export async function handleUpload(
       }
     };
 
-    console.log('发送到智能体的请求:', {
+    console.log('📡 发送到智能体的请求:', {
       fileCount: files.length,
       promptLength: userPrompt.length,
       hasToken: !!userToken,
+      tokenLength: userToken.length,
       userId: userId
     });
 
@@ -106,14 +115,15 @@ export async function handleUpload(
     try {
       result = await response.json();
     } catch (jsonError) {
-      console.log('解析响应失败:', jsonError);
+      console.log('❌ 解析响应失败:', jsonError);
       return createErrorResponse('服务器响应格式错误', 500);
     }
 
-    console.log('智能体响应:', {
+    console.log('📨 智能体响应:', {
       status: response.status,
       success: result.success,
-      error: result.error
+      error: result.error,
+      message: result.message
     });
 
     if (!response.ok) {
@@ -122,6 +132,7 @@ export async function handleUpload(
       }
 
       const errorMessage = result.message || result.error || `服务器错误 (${response.status})`;
+      console.log('❌ 智能体返回错误:', errorMessage);
       return createErrorResponse(errorMessage, response.status);
     }
 
@@ -139,7 +150,7 @@ export async function handleUpload(
           Date.now()
         ).run();
 
-        console.log('任务保存成功:', result.task_id);
+        console.log('✅ 任务保存成功:', result.task_id);
       } catch (dbError) {
         console.log('⚠️ 数据库保存错误:', dbError);
       }
@@ -159,7 +170,7 @@ export async function handleUpload(
     return createSuccessResponse(enhancedResult);
 
   } catch (error) {
-    console.log('上传处理异常:', error);
+    console.log('❌ 上传处理异常:', error);
     return createErrorResponse('网络连接失败，请重试', 500);
   }
 }

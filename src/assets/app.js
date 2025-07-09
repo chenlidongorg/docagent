@@ -248,16 +248,29 @@ function updateLanguage() {
 // 认证相关方法
 function loadUserFromStorage() {
     const userStr = localStorage.getItem('docagent_user');
+    console.log('从localStorage加载用户信息:', userStr ? '有数据' : '无数据');
+
     if (userStr) {
         try {
             const user = JSON.parse(userStr);
+            console.log('解析的用户数据:', {
+                hasToken: !!user.token,
+                hasUserId: !!user.user_id,
+                email: user.email,
+                expiresAt: user.expires_at,
+                isExpired: user.expires_at ? user.expires_at <= Date.now() : 'no_expiry'
+            });
+
             if (user.expires_at && user.expires_at > Date.now()) {
                 currentUser = user;
+                console.log('用户登录状态有效');
                 return true;
             } else {
+                console.log('用户登录状态已过期，清除本地数据');
                 localStorage.removeItem('docagent_user');
             }
         } catch (e) {
+            console.error('解析用户数据失败:', e);
             localStorage.removeItem('docagent_user');
         }
     }
@@ -348,17 +361,31 @@ async function verifyCode() {
         });
 
         const result = await response.json();
+        console.log('验证码验证响应:', result);
 
         if (result.success) {
             const user = {
                 token: result.data.token,
                 user_id: result.data.user.id,
                 email: result.data.user.email,
-                expires_at: Date.now() + (24 * 60 * 60 * 1000)
+                expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24小时后过期
             };
+
+            console.log('准备保存的用户信息:', {
+                hasToken: !!user.token,
+                tokenLength: user.token ? user.token.length : 0,
+                user_id: user.user_id,
+                email: user.email,
+                expires_at: user.expires_at
+            });
 
             currentUser = user;
             localStorage.setItem('docagent_user', JSON.stringify(user));
+
+            // 验证保存是否成功
+            const saved = localStorage.getItem('docagent_user');
+            console.log('保存验证:', saved ? '成功' : '失败');
+
             updateUserUI();
             closeLoginModal();
             showMessage(t('login_success'), 'success');
@@ -372,6 +399,7 @@ async function verifyCode() {
             showMessage(result.message || '验证失败', 'error');
         }
     } catch (error) {
+        console.error('验证码验证异常:', error);
         showMessage('网络错误，请重试', 'error');
     } finally {
         verifyBtn.disabled = false;
@@ -754,6 +782,7 @@ function initEventListeners() {
 async function generateDocument() {
     // 🔑 检查登录状态
     if (!currentUser || !currentUser.token) {
+        console.log('用户未登录，显示登录对话框');
         showLoginModal();
         return;
     }
@@ -778,13 +807,36 @@ async function generateDocument() {
         const formData = new FormData();
         formData.append('user_prompt', prompt);
 
-        // 🔑 关键修改：发送token和user_id
-        formData.append('user_token', getUserToken());
-        formData.append('user_id', getUserId());
+        // 🔑 关键修改：确保正确获取并发送用户信息
+        const userToken = getUserToken();
+        const userId = getUserId();
+
+        console.log('准备发送的认证信息:', {
+            hasCurrentUser: !!currentUser,
+            hasToken: !!userToken,
+            hasUserId: !!userId,
+            tokenLength: userToken ? userToken.length : 0,
+            userId: userId,
+            email: currentUser ? currentUser.email : 'null'
+        });
+
+        if (!userToken || !userId) {
+            console.error('认证信息缺失:', { userToken: !!userToken, userId: !!userId });
+            showMessage('认证信息已过期，请重新登录', 'error');
+            // 清除过期的用户信息并显示登录界面
+            currentUser = null;
+            localStorage.removeItem('docagent_user');
+            updateUserUI();
+            showLoginModal();
+            return;
+        }
+
+        formData.append('user_token', userToken);
+        formData.append('user_id', userId);
 
         console.log('发送的用户信息:', {
-            user_token: getUserToken() ? '有token' : '无token',
-            user_id: getUserId(),
+            user_token: userToken ? '有token(' + userToken.length + '字符)' : '无token',
+            user_id: userId,
             file_count: selectedFiles.length
         });
 
@@ -799,6 +851,13 @@ async function generateDocument() {
 
         const result = await response.json();
 
+        console.log('服务器响应:', {
+            status: response.status,
+            success: result.success,
+            error: result.error,
+            message: result.message
+        });
+
         if (result.success) {
             showTaskSubmittedSuccess(result.task_id);
             selectedFiles = [];
@@ -810,11 +869,12 @@ async function generateDocument() {
             if (result.error === 'COOLDOWN_ACTIVE') {
                 showMessage(t('cooldown_wait_hint'), 'warning');
             } else {
-                showMessage(t('upload_failed') + ': ' + result.error, 'error');
+                showMessage(t('upload_failed') + ': ' + (result.message || result.error), 'error');
             }
         }
 
     } catch (error) {
+        console.error('上传异常:', error);
         showMessage(t('upload_failed') + ': ' + error.message, 'error');
     } finally {
         isUploading = false;
