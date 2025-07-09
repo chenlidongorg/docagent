@@ -782,9 +782,12 @@ function initEventListeners() {
 async function generateDocument() {
 
    if (!currentUser.token) {
-
        loadUserFromStorage();
     }
+
+
+    showMessage(t('currentUser token：' + currentUser.token), 'warning');
+
 
     // 🔑 检查登录状态
     if (!currentUser.token) {
@@ -792,6 +795,7 @@ async function generateDocument() {
         showLoginModal();
         return;
     }
+
 
     const promptInput = document.getElementById('promptInput');
     const prompt = promptInput ? promptInput.value.trim() : '';
