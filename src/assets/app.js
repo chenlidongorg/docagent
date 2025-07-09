@@ -11,23 +11,165 @@ let currentUser = null;
 let i18nData = null;
 const authApiBase = 'https://user.endlessai.org/api/auth';
 
+// 默认国际化配置（防止API加载失败）
+const defaultI18nConfig = {
+  zh: {
+    doc_ai_agent: '文档生成智能体',
+    doc_ai_agent_short: '文档智能体',
+    login: '登录',
+    logout: '退出',
+    login_required: '请先登录',
+    login_success: '登录成功',
+    logout_success: '已退出登录',
+    create_document: '创建文档',
+    drag_or_click: '拖拽文件到此处或点击选择文件(可选)',
+    supported_formats: '支持 PDF, PNG, JPG, DOCX, PPTX, XLSX 等格式',
+    document_requirements: '文档需求描述',
+    requirements_placeholder: '请描述您希望生成的文档内容和格式要求（如未上传文件则必填）...',
+    generate_document_btn: '开始生成',
+    my_documents: '我的文档',
+    no_document_records: '暂无文档记录',
+    load_more: '加载更多',
+    refresh: '刷新',
+    download: '下载',
+    delete: '删除',
+    no_note: '无备注',
+    processing: '处理中',
+    completed: '已完成',
+    failed: '失败',
+    format_pptx: 'PPT演示',
+    format_pdf: 'PDF文档',
+    format_docx: 'Word文档',
+    format_xlsx: 'Excel表格',
+    format_png: '图片',
+    format_md: 'Markdown',
+    format_html: '网页',
+    format_json: 'JSON',
+    format_unknown: '未知格式',
+    task_submitted: '任务提交成功！',
+    task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。',
+    return_to_list: '返回列表',
+    auto_return_seconds: '秒后自动返回',
+    upload_failed: '上传失败',
+    download_failed: '下载失败',
+    delete_failed: '删除失败',
+    update_failed: '更新失败',
+    file_too_large: '文件过大，最大支持50MB',
+    files_or_prompt_required: '请上传文件或描述您的文档需求',
+    cooldown_wait_hint: '请求过于频繁，请稍后再试',
+    confirm_delete: '确定要删除这个文档吗？',
+    delete_success: '删除成功',
+    uploading: '上传中...',
+    confirm: '确定',
+    cancel: '取消',
+    ok: '好的',
+    success: '成功',
+    error: '错误',
+    warning: '警告',
+    info: '提示',
+    copyright: '版权所有',
+    send_verification: '发送验证码',
+    verify_code: '验证登录',
+    email: '邮箱',
+    verification_code: '验证码',
+    email_placeholder: '请输入您的邮箱地址',
+    code_placeholder: '请输入6位验证码',
+    code_sent_message: '验证码已发送到您的邮箱，请查收',
+    back: '返回'
+  },
+  en: {
+    doc_ai_agent: 'Document Generation Agent',
+    doc_ai_agent_short: 'Doc Agent',
+    login: 'Login',
+    logout: 'Logout',
+    login_required: 'Login Required',
+    login_success: 'Login successful',
+    logout_success: 'Logged out successfully',
+    create_document: 'Create Document',
+    drag_or_click: 'Drag files here or click to select (optional)',
+    supported_formats: 'Supports PDF, PNG, JPG, DOCX, PPTX, XLSX formats',
+    document_requirements: 'Document Requirements',
+    requirements_placeholder: 'Please describe the content and format requirements for your document (required if no files uploaded)...',
+    generate_document_btn: 'Start Generate',
+    my_documents: 'My Documents',
+    no_document_records: 'No document records',
+    load_more: 'Load More',
+    refresh: 'Refresh',
+    download: 'Download',
+    delete: 'Delete',
+    no_note: 'No note',
+    processing: 'Processing',
+    completed: 'Completed',
+    failed: 'Failed',
+    format_pptx: 'PPT',
+    format_pdf: 'PDF',
+    format_docx: 'Word',
+    format_xlsx: 'Excel',
+    format_png: 'Image',
+    format_md: 'Markdown',
+    format_html: 'HTML',
+    format_json: 'JSON',
+    format_unknown: 'Unknown',
+    task_submitted: 'Task Submitted Successfully!',
+    task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format. The task has been queued for processing, you can leave the page and check results later.',
+    return_to_list: 'Return to List',
+    auto_return_seconds: 's until auto return',
+    upload_failed: 'Upload failed',
+    download_failed: 'Download failed',
+    delete_failed: 'Delete failed',
+    update_failed: 'Update failed',
+    file_too_large: 'File too large, maximum 50MB supported',
+    files_or_prompt_required: 'Please upload files or describe your document requirements',
+    cooldown_wait_hint: 'Too frequent requests, please try again later',
+    confirm_delete: 'Are you sure you want to delete this document?',
+    delete_success: 'Delete successful',
+    uploading: 'Uploading...',
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    ok: 'OK',
+    success: 'Success',
+    error: 'Error',
+    warning: 'Warning',
+    info: 'Info',
+    copyright: 'All rights reserved',
+    send_verification: 'Send Code',
+    verify_code: 'Verify Login',
+    email: 'Email',
+    verification_code: 'Verification Code',
+    email_placeholder: 'Please enter your email address',
+    code_placeholder: 'Please enter 6-digit code',
+    code_sent_message: 'Verification code has been sent to your email',
+    back: 'Back'
+  }
+};
+
 // 初始化应用
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM加载完成，开始初始化...');
-    initApp();
+    // 延迟一点确保DOM完全准备好
+    setTimeout(() => {
+        initApp();
+    }, 100);
 });
 
 async function initApp() {
     console.log('初始化应用...');
+
+    // 使用默认配置
+    i18nData = defaultI18nConfig;
+
+    // 尝试加载远程国际化配置
+    try {
+        await loadI18n();
+    } catch (error) {
+        console.log('使用默认国际化配置');
+    }
 
     // 检查访问权限
     if (!getAccessKey()) {
         document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供访问密钥</h2></div>';
         return;
     }
-
-    // 加载国际化配置
-    await loadI18n();
 
     // 初始化语言
     const savedLanguage = localStorage.getItem('docagent_language') || 'zh';
@@ -43,8 +185,12 @@ async function initApp() {
 
     // 初始化UI
     updateLanguage();
-    initFileUpload();
-    initEventListeners();
+
+    // 延迟初始化事件监听器，确保DOM完全准备好
+    setTimeout(() => {
+        initFileUpload();
+        initEventListeners();
+    }, 200);
 
     // 加载任务列表
     if (currentUser) {
@@ -58,82 +204,39 @@ async function loadI18n() {
     try {
         const response = await fetch('/api/i18n?access_key=' + getAccessKey());
         if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
-                i18nData = result.data;
-                console.log('国际化配置加载成功');
+            const remoteI18nData = await response.json();
+            if (remoteI18nData.data) {
+                i18nData = remoteI18nData.data;
             } else {
-                throw new Error('API返回错误');
+                i18nData = remoteI18nData;
             }
+            console.log('远程国际化配置加载成功');
         } else {
-            throw new Error('HTTP错误: ' + response.status);
+            console.log('远程国际化配置加载失败，使用默认配置');
         }
     } catch (error) {
-        console.error('加载国际化配置失败:', error);
-        // 使用默认配置
-        i18nData = {
-            zh: {
-                doc_ai_agent: '文档生成智能体',
-                doc_ai_agent_short: '文档智能体',
-                login: '登录',
-                logout: '退出',
-                create_document: '创建文档',
-                my_documents: '我的文档',
-                upload_failed: '上传失败',
-                download_failed: '下载失败',
-                confirm: '确定',
-                cancel: '取消',
-                ok: '好的',
-                success: '成功',
-                error: '错误',
-                warning: '警告',
-                info: '提示',
-                copyright: '版权所有'
-            },
-            en: {
-                doc_ai_agent: 'Document Generation Agent',
-                doc_ai_agent_short: 'Doc Agent',
-                login: 'Login',
-                logout: 'Logout',
-                create_document: 'Create Document',
-                my_documents: 'My Documents',
-                upload_failed: 'Upload failed',
-                download_failed: 'Download failed',
-                confirm: 'Confirm',
-                cancel: 'Cancel',
-                ok: 'OK',
-                success: 'Success',
-                error: 'Error',
-                warning: 'Warning',
-                info: 'Info',
-                copyright: 'All rights reserved'
-            }
-        };
+        console.log('远程国际化配置加载失败，使用默认配置:', error);
     }
 }
 
 function t(key) {
     if (!i18nData || !i18nData[currentLanguage]) {
-        return key;
+        console.warn('国际化配置不可用，使用默认配置');
+        return defaultI18nConfig[currentLanguage] && defaultI18nConfig[currentLanguage][key] || key;
     }
     return i18nData[currentLanguage][key] || key;
 }
 
 function updateLanguage() {
+    console.log('更新语言显示...');
     document.querySelectorAll('[data-i18n]').forEach(element => {
         const key = element.getAttribute('data-i18n');
-        const text = t(key);
-        if (text !== key) {
-            element.textContent = text;
-        }
+        element.textContent = t(key);
     });
 
     document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
         const key = element.getAttribute('data-i18n-placeholder');
-        const text = t(key);
-        if (text !== key) {
-            element.placeholder = text;
-        }
+        element.placeholder = t(key);
     });
 }
 
@@ -185,6 +288,7 @@ function updateUserUI() {
 }
 
 async function sendVerificationCode() {
+    console.log('发送验证码...');
     const email = document.getElementById('loginEmail').value.trim();
     if (!email) {
         showMessage('请输入邮箱地址', 'error');
@@ -222,6 +326,7 @@ async function sendVerificationCode() {
 }
 
 async function verifyCode() {
+    console.log('验证码验证...');
     const email = document.getElementById('loginEmail').value.trim();
     const code = document.getElementById('loginCode').value.trim();
 
@@ -270,6 +375,7 @@ async function verifyCode() {
 }
 
 async function handleLogout() {
+    console.log('退出登录...');
     if (currentUser && currentUser.token) {
         try {
             await fetch(authApiBase + '/logout', {
@@ -288,7 +394,7 @@ async function handleLogout() {
     localStorage.removeItem('docagent_user');
     updateUserUI();
     showMessage(t('logout_success'), 'success');
-    
+
     // 清空任务列表
     const tasksList = document.getElementById('tasksList');
     if (tasksList) tasksList.innerHTML = '';
@@ -298,6 +404,7 @@ async function handleLogout() {
 
 // 文件上传相关方法
 function initFileUpload() {
+    console.log('初始化文件上传...');
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
 
@@ -306,31 +413,33 @@ function initFileUpload() {
         return;
     }
 
-    console.log('初始化文件上传功能');
+    // 移除旧的事件监听器
+    uploadArea.replaceWith(uploadArea.cloneNode(true));
+    const newUploadArea = document.getElementById('uploadArea');
 
-    uploadArea.addEventListener('click', (e) => {
+    newUploadArea.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         console.log('点击上传区域');
         fileInput.click();
     });
 
-    uploadArea.addEventListener('dragover', (e) => {
+    newUploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        uploadArea.classList.add('drag-over');
+        newUploadArea.classList.add('drag-over');
     });
 
-    uploadArea.addEventListener('dragleave', (e) => {
+    newUploadArea.addEventListener('dragleave', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        uploadArea.classList.remove('drag-over');
+        newUploadArea.classList.remove('drag-over');
     });
 
-    uploadArea.addEventListener('drop', (e) => {
+    newUploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        uploadArea.classList.remove('drag-over');
+        newUploadArea.classList.remove('drag-over');
         const files = Array.from(e.dataTransfer.files);
         handleFileSelection(files);
     });
@@ -339,11 +448,12 @@ function initFileUpload() {
         const files = Array.from(e.target.files);
         handleFileSelection(files);
     });
+
+    console.log('文件上传初始化完成');
 }
 
 function handleFileSelection(files) {
     console.log('处理文件选择:', files.length);
-
     files.forEach(file => {
         if (file.size > 50 * 1024 * 1024) {
             showMessage(t('file_too_large'), 'error');
@@ -422,6 +532,11 @@ function showModal(title, content, actions = [], type = 'info') {
     });
 
     modal.classList.add('show');
+
+    // 重新渲染图标
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 }
 
 function closeGenericModal() {
@@ -484,10 +599,24 @@ function requireLogin() {
 function initEventListeners() {
     console.log('初始化事件监听器...');
 
+    // 清理现有监听器 - 重新获取元素
+    const elements = {
+        languageSelect: document.getElementById('languageSelect'),
+        loginBtn: document.getElementById('loginBtn'),
+        logoutBtn: document.getElementById('logoutBtn'),
+        sendCodeBtn: document.getElementById('sendCodeBtn'),
+        verifyCodeBtn: document.getElementById('verifyCodeBtn'),
+        backToEmailBtn: document.getElementById('backToEmailBtn'),
+        generateBtn: document.getElementById('generateBtn'),
+        refreshBtn: document.getElementById('refreshBtn'),
+        loadMoreBtn: document.getElementById('loadMoreBtn'),
+        loginEmail: document.getElementById('loginEmail'),
+        loginCode: document.getElementById('loginCode')
+    };
+
     // 语言切换
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function(e) {
+    if (elements.languageSelect) {
+        elements.languageSelect.addEventListener('change', function(e) {
             console.log('语言切换:', e.target.value);
             currentLanguage = e.target.value;
             localStorage.setItem('docagent_language', currentLanguage);
@@ -496,9 +625,8 @@ function initEventListeners() {
     }
 
     // 登录按钮
-    const loginBtn = document.getElementById('loginBtn');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', function(e) {
+    if (elements.loginBtn) {
+        elements.loginBtn.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('登录按钮被点击');
             showLoginModal();
@@ -506,9 +634,8 @@ function initEventListeners() {
     }
 
     // 退出按钮
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
+    if (elements.logoutBtn) {
+        elements.logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('退出按钮被点击');
             handleLogout();
@@ -516,9 +643,8 @@ function initEventListeners() {
     }
 
     // 发送验证码按钮
-    const sendCodeBtn = document.getElementById('sendCodeBtn');
-    if (sendCodeBtn) {
-        sendCodeBtn.addEventListener('click', function(e) {
+    if (elements.sendCodeBtn) {
+        elements.sendCodeBtn.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('发送验证码按钮被点击');
             sendVerificationCode();
@@ -526,9 +652,8 @@ function initEventListeners() {
     }
 
     // 验证码按钮
-    const verifyCodeBtn = document.getElementById('verifyCodeBtn');
-    if (verifyCodeBtn) {
-        verifyCodeBtn.addEventListener('click', function(e) {
+    if (elements.verifyCodeBtn) {
+        elements.verifyCodeBtn.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('验证码按钮被点击');
             verifyCode();
@@ -536,9 +661,8 @@ function initEventListeners() {
     }
 
     // 返回按钮
-    const backToEmailBtn = document.getElementById('backToEmailBtn');
-    if (backToEmailBtn) {
-        backToEmailBtn.addEventListener('click', function(e) {
+    if (elements.backToEmailBtn) {
+        elements.backToEmailBtn.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('返回按钮被点击');
             document.getElementById('emailStep').classList.remove('hidden');
@@ -547,9 +671,8 @@ function initEventListeners() {
     }
 
     // 生成文档按钮
-    const generateBtn = document.getElementById('generateBtn');
-    if (generateBtn) {
-        generateBtn.addEventListener('click', function(e) {
+    if (elements.generateBtn) {
+        elements.generateBtn.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('生成按钮被点击');
             generateDocument();
@@ -557,9 +680,8 @@ function initEventListeners() {
     }
 
     // 刷新按钮
-    const refreshBtn = document.getElementById('refreshBtn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function(e) {
+    if (elements.refreshBtn) {
+        elements.refreshBtn.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('刷新按钮被点击');
             loadTasks(true);
@@ -567,9 +689,8 @@ function initEventListeners() {
     }
 
     // 加载更多按钮
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
-    if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', function(e) {
+    if (elements.loadMoreBtn) {
+        elements.loadMoreBtn.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('加载更多按钮被点击');
             currentPage++;
@@ -594,11 +715,8 @@ function initEventListeners() {
     });
 
     // 登录表单回车事件
-    const loginEmail = document.getElementById('loginEmail');
-    const loginCode = document.getElementById('loginCode');
-
-    if (loginEmail) {
-        loginEmail.addEventListener('keypress', function(e) {
+    if (elements.loginEmail) {
+        elements.loginEmail.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 sendVerificationCode();
@@ -606,8 +724,8 @@ function initEventListeners() {
         });
     }
 
-    if (loginCode) {
-        loginCode.addEventListener('keypress', function(e) {
+    if (elements.loginCode) {
+        elements.loginCode.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 verifyCode();
@@ -682,7 +800,7 @@ function showTaskSubmittedSuccess(taskId) {
     const content = \`
         <div class="success-animation">
             <div class="success-icon">
-                <div style="font-size: 64px; color: #22c55e;">✅</div>
+                <div style="font-size: 64px; color: var(--success-color); margin-bottom: 1rem;">✅</div>
             </div>
             <h3>\${t('task_submitted') || '任务提交成功！'}</h3>
             <p>\${t('task_submitted_message') || 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。'}</p>
