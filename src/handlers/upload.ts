@@ -19,10 +19,18 @@ export async function handleUpload(
 
     // 🔥 关键修改：从表单中获取token而不是userid
     const userToken = formData.get('user_token') as string;
-    const userId = formData.get('user_id') as string; // 登录系统的user_id
+    const userId = formData.get('user_id') as string;
+
+    console.log('上传请求验证:', {
+      hasToken: !!userToken,
+      hasUserId: !!userId,
+      tokenLength: userToken ? userToken.length : 0,
+      userId: userId
+    });
 
     if (!userToken || !userId) {
-      return createErrorResponse('VALIDATION_ERROR - Missing user authentication', 400);
+      console.log('认证失败: 缺少token或userId');
+      return createErrorResponse('缺少用户认证信息，请重新登录', 400);
     }
 
     // 处理上传的文件
@@ -30,7 +38,7 @@ export async function handleUpload(
     for (const [key, value] of formData.entries()) {
       if (key.startsWith('file_') && value instanceof File) {
         if (value.size > 50 * 1024 * 1024) {
-          return createErrorResponse('FILE_TOO_LARGE', 413);
+          return createErrorResponse('文件过大，最大支持50MB', 413);
         }
 
         try {
@@ -45,13 +53,14 @@ export async function handleUpload(
 
           fileCount++;
         } catch (error) {
-          return createErrorResponse('FILE_PROCESSING_ERROR', 400);
+          console.log('文件处理错误:', error);
+          return createErrorResponse('文件处理失败', 400);
         }
       }
     }
 
     if (files.length === 0 && !userPrompt.trim()) {
-      return createErrorResponse('VALIDATION_ERROR', 400);
+      return createErrorResponse('请上传文件或描述您的文档需求', 400);
     }
 
     const baseCharge = 1;
@@ -77,6 +86,13 @@ export async function handleUpload(
       }
     };
 
+    console.log('发送到智能体的请求:', {
+      fileCount: files.length,
+      promptLength: userPrompt.length,
+      hasToken: !!userToken,
+      userId: userId
+    });
+
     const response = await fetch('https://docapi.endlessai.org/api/v1/ppt/generate', {
       method: 'POST',
       headers: {
@@ -90,14 +106,23 @@ export async function handleUpload(
     try {
       result = await response.json();
     } catch (jsonError) {
-      return createErrorResponse('RESPONSE_PARSE_ERROR', 500);
+      console.log('解析响应失败:', jsonError);
+      return createErrorResponse('服务器响应格式错误', 500);
     }
+
+    console.log('智能体响应:', {
+      status: response.status,
+      success: result.success,
+      error: result.error
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
-        return createErrorResponse('COOLDOWN_ACTIVE', 429);
+        return createErrorResponse('请求过于频繁，请稍后再试', 429);
       }
-      return createErrorResponse(`HTTP_${response.status}`, response.status);
+
+      const errorMessage = result.message || result.error || `服务器错误 (${response.status})`;
+      return createErrorResponse(errorMessage, response.status);
     }
 
     // 🔥 关键修改：保存任务时使用登录系统的user_id
@@ -113,6 +138,8 @@ export async function handleUpload(
           result.message || 'AI智能体正在处理任务',
           Date.now()
         ).run();
+
+        console.log('任务保存成功:', result.task_id);
       } catch (dbError) {
         console.log('⚠️ 数据库保存错误:', dbError);
       }
@@ -132,6 +159,7 @@ export async function handleUpload(
     return createSuccessResponse(enhancedResult);
 
   } catch (error) {
-    return createErrorResponse('NETWORK_ERROR', 500);
+    console.log('上传处理异常:', error);
+    return createErrorResponse('网络连接失败，请重试', 500);
   }
 }

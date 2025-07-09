@@ -36,6 +36,7 @@ export interface FileData {
 export interface UploadRequest {
   files: FileData[];
   user_prompt: string;
+  user_token: string; // 🔑 添加token字段
   user_id: string;
   constraints: {
     max_slides: number;

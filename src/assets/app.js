@@ -159,9 +159,9 @@ const i18nConfig = {
     }
 };
 
-// 🔥 移除URL参数依赖的辅助函数
+// 🔥 完全移除URL参数依赖的辅助函数
 function apiUrl(path) {
-    // 直接返回路径，不再依赖access_key
+    // 直接返回路径，不再依赖任何参数
     return path;
 }
 
@@ -427,24 +427,8 @@ function initFileUpload() {
         e.stopPropagation();
         console.log('点击上传区域，触发文件选择');
 
-        // 创建新的文件输入来避免缓存问题
-        const newFileInput = document.createElement('input');
-        newFileInput.type = 'file';
-        newFileInput.multiple = true;
-        newFileInput.accept = '.pdf,.png,.jpg,.jpeg,.docx,.pptx,.xlsx,.md,.txt';
-        newFileInput.style.display = 'none';
-
-        newFileInput.addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
-            if (files.length > 0) {
-                handleFileSelection(files);
-            }
-            // 移除临时创建的输入框
-            document.body.removeChild(newFileInput);
-        });
-
-        document.body.appendChild(newFileInput);
-        newFileInput.click();
+        // 🔥 直接触发现有的文件输入
+        fileInput.click();
     });
 
     // 🔥 确保原有文件输入框的change事件正确绑定
@@ -766,7 +750,7 @@ function initEventListeners() {
     console.log('事件监听器初始化完成');
 }
 
-// 🔥 修改任务管理方法 - 使用 token 而不是 userid
+// 🔥 修改任务管理方法 - 确保正确发送用户信息
 async function generateDocument() {
     // 🔑 检查登录状态
     if (!currentUser || !currentUser.token) {
@@ -797,6 +781,12 @@ async function generateDocument() {
         // 🔑 关键修改：发送token和user_id
         formData.append('user_token', getUserToken());
         formData.append('user_id', getUserId());
+
+        console.log('发送的用户信息:', {
+            user_token: getUserToken() ? '有token' : '无token',
+            user_id: getUserId(),
+            file_count: selectedFiles.length
+        });
 
         selectedFiles.forEach((file, index) => {
             formData.append('file_' + index, file);

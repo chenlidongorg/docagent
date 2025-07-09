@@ -5,7 +5,6 @@ import { handleAssets } from './handlers/assets';
 import { handleUpload } from './handlers/upload';
 import { handleTasks, handleUpdateNote, handleDelete, handleStatus, handleCheckPending, handleHasPending, handleCleanupTask } from './handlers/tasks';
 import { handleDownload, handleDownloadWithData } from './handlers/download';
-import { handleI18n } from './handlers/i18n';
 import { generateHTML } from './templates/html';
 
 export default {
@@ -23,7 +22,7 @@ export default {
       return handleAssets(request, env);
     }
 
-    // 🔥 移除访问权限检查，直接进入路由处理
+    // 🔥 完全移除访问权限检查
     // const authError = checkAccess(request, env);
     // if (authError) {
     //   return authError;
@@ -32,7 +31,7 @@ export default {
     // 路由处理
     switch (path) {
       case '/':
-        // 🔥 直接返回页面，不检查access_key
+        // 🔥 直接返回页面，不检查任何参数
         return new Response(generateHTML(), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
         });
