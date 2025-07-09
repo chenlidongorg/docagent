@@ -6,7 +6,3 @@ import { i18nConfig } from '../utils/i18n';
 export async function handleI18n(request: Request, env: CloudflareEnv): Promise<Response> {
   return createSuccessResponse(i18nConfig);
 }
-
-export async function handleI18n(request: Request, env: CloudflareEnv): Promise<Response> {
-  return createSuccessResponse(i18nConfig);
-}
