@@ -25,6 +25,7 @@ export const i18nConfig = {
     code_sent_message: '验证码已发送到您的邮箱，请查收',
     invalid_code: '验证码无效或已过期',
     login_failed: '登录失败',
+    back: '返回',
 
     // 文档创建
     create_document: '创建文档',
@@ -44,7 +45,7 @@ export const i18nConfig = {
     delete: '删除',
     no_note: '无备注',
     task_submitted: '任务提交成功！',
-    task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。<br>任务已进入队列处理，您可以离开页面稍后查看结果。',
+    task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。',
     return_to_list: '返回列表',
     auto_return_seconds: '秒后自动返回',
 
@@ -109,6 +110,7 @@ export const i18nConfig = {
     code_sent_message: 'Verification code has been sent to your email',
     invalid_code: 'Invalid or expired code',
     login_failed: 'Login failed',
+    back: 'Back',
 
     // 文档创建
     create_document: 'Create Document',
@@ -128,7 +130,7 @@ export const i18nConfig = {
     delete: 'Delete',
     no_note: 'No note',
     task_submitted: 'Task Submitted Successfully!',
-    task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format.<br>The task has been queued for processing, you can leave the page and check results later.',
+    task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format. The task has been queued for processing, you can leave the page and check results later.',
     return_to_list: 'Return to List',
     auto_return_seconds: 's until auto return',
 

@@ -124,8 +124,7 @@ export function generateHTML(): string {
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <i data-feather="copyright"></i>
-                <span>2025 Endless AI LLC.</span>
+                <span>© 2025 Endless AI LLC.</span>
                 <span data-i18n="copyright">版权所有</span>
             </div>
         </div>

@@ -1,4 +1,5 @@
-// src/assets/app.js
+async function getAppJS(): Promise<string> {
+  return `
 // 全局变量
 let currentLanguage = 'zh';
 let selectedFiles = [];
@@ -19,14 +20,14 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initApp() {
     console.log('初始化应用...');
 
-    // 加载国际化配置
-    await loadI18n();
-
     // 检查访问权限
     if (!getAccessKey()) {
         document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供访问密钥</h2></div>';
         return;
     }
+
+    // 加载国际化配置
+    await loadI18n();
 
     // 初始化语言
     const savedLanguage = localStorage.getItem('docagent_language') || 'zh';
@@ -42,12 +43,8 @@ async function initApp() {
 
     // 初始化UI
     updateLanguage();
-
-    // 等待DOM完全准备好后再初始化事件
-    setTimeout(() => {
-        initFileUpload();
-        initEventListeners();
-    }, 100);
+    initFileUpload();
+    initEventListeners();
 
     // 加载任务列表
     if (currentUser) {
@@ -59,31 +56,84 @@ async function initApp() {
 
 async function loadI18n() {
     try {
-        const response = await fetch('/api/i18n');
-        i18nData = await response.json();
-        console.log('国际化配置加载成功');
+        const response = await fetch('/api/i18n?access_key=' + getAccessKey());
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                i18nData = result.data;
+                console.log('国际化配置加载成功');
+            } else {
+                throw new Error('API返回错误');
+            }
+        } else {
+            throw new Error('HTTP错误: ' + response.status);
+        }
     } catch (error) {
-        console.error('Failed to load i18n:', error);
+        console.error('加载国际化配置失败:', error);
+        // 使用默认配置
         i18nData = {
-            zh: { doc_ai_agent: '文档生成智能体' },
-            en: { doc_ai_agent: 'Document Generation Agent' }
+            zh: {
+                doc_ai_agent: '文档生成智能体',
+                doc_ai_agent_short: '文档智能体',
+                login: '登录',
+                logout: '退出',
+                create_document: '创建文档',
+                my_documents: '我的文档',
+                upload_failed: '上传失败',
+                download_failed: '下载失败',
+                confirm: '确定',
+                cancel: '取消',
+                ok: '好的',
+                success: '成功',
+                error: '错误',
+                warning: '警告',
+                info: '提示',
+                copyright: '版权所有'
+            },
+            en: {
+                doc_ai_agent: 'Document Generation Agent',
+                doc_ai_agent_short: 'Doc Agent',
+                login: 'Login',
+                logout: 'Logout',
+                create_document: 'Create Document',
+                my_documents: 'My Documents',
+                upload_failed: 'Upload failed',
+                download_failed: 'Download failed',
+                confirm: 'Confirm',
+                cancel: 'Cancel',
+                ok: 'OK',
+                success: 'Success',
+                error: 'Error',
+                warning: 'Warning',
+                info: 'Info',
+                copyright: 'All rights reserved'
+            }
         };
     }
 }
 
 function t(key) {
+    if (!i18nData || !i18nData[currentLanguage]) {
+        return key;
+    }
     return i18nData[currentLanguage][key] || key;
 }
 
 function updateLanguage() {
     document.querySelectorAll('[data-i18n]').forEach(element => {
         const key = element.getAttribute('data-i18n');
-        element.textContent = t(key);
+        const text = t(key);
+        if (text !== key) {
+            element.textContent = text;
+        }
     });
 
     document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
         const key = element.getAttribute('data-i18n-placeholder');
-        element.placeholder = t(key);
+        const text = t(key);
+        if (text !== key) {
+            element.placeholder = text;
+        }
     });
 }
 
@@ -134,10 +184,7 @@ function updateUserUI() {
     }
 }
 
-// 登录相关函数
 async function sendVerificationCode() {
-    console.log('发送验证码函数被调用');
-
     const email = document.getElementById('loginEmail').value.trim();
     if (!email) {
         showMessage('请输入邮箱地址', 'error');
@@ -175,8 +222,6 @@ async function sendVerificationCode() {
 }
 
 async function verifyCode() {
-    console.log('验证码验证函数被调用');
-
     const email = document.getElementById('loginEmail').value.trim();
     const code = document.getElementById('loginCode').value.trim();
 
@@ -225,8 +270,6 @@ async function verifyCode() {
 }
 
 async function handleLogout() {
-    console.log('退出登录函数被调用');
-
     if (currentUser && currentUser.token) {
         try {
             await fetch(authApiBase + '/logout', {
@@ -245,11 +288,10 @@ async function handleLogout() {
     localStorage.removeItem('docagent_user');
     updateUserUI();
     showMessage(t('logout_success'), 'success');
-
+    
     // 清空任务列表
     const tasksList = document.getElementById('tasksList');
     if (tasksList) tasksList.innerHTML = '';
-
     const noTasks = document.getElementById('noTasks');
     if (noTasks) noTasks.classList.remove('hidden');
 }
@@ -326,22 +368,17 @@ function updateFileList() {
     }
 
     fileList.classList.remove('hidden');
-    fileList.innerHTML = selectedFiles.map((file, index) => `
+    fileList.innerHTML = selectedFiles.map((file, index) => \`
         <div class="file-item">
             <div class="file-info">
-                <span class="file-name">${file.name}</span>
-                <span class="file-size">(${formatFileSize(file.size)})</span>
+                <span class="file-name">\${file.name}</span>
+                <span class="file-size">(\${formatFileSize(file.size)})</span>
             </div>
-            <button class="btn btn-sm btn-danger" onclick="removeFile(${index})" type="button">
-                <i data-feather="x"></i>
+            <button class="btn btn-sm btn-danger" onclick="removeFile(\${index})" type="button">
+                ×
             </button>
         </div>
-    `).join('');
-
-    // 重新渲染图标
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
+    \`).join('');
 }
 
 function removeFile(index) {
@@ -377,7 +414,7 @@ function showModal(title, content, actions = [], type = 'info') {
 
     actions.forEach(action => {
         const button = document.createElement('button');
-        button.className = `btn ${action.className || 'btn-secondary'}`;
+        button.className = \`btn \${action.className || 'btn-secondary'}\`;
         button.textContent = action.text;
         button.type = 'button';
         button.onclick = action.onClick;
@@ -385,11 +422,6 @@ function showModal(title, content, actions = [], type = 'info') {
     });
 
     modal.classList.add('show');
-
-    // 重新渲染图标
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
 }
 
 function closeGenericModal() {
@@ -451,12 +483,6 @@ function requireLogin() {
 // 事件监听器初始化
 function initEventListeners() {
     console.log('初始化事件监听器...');
-
-    // 移除所有现有的事件监听器（避免重复绑定）
-    const allButtons = document.querySelectorAll('button');
-    allButtons.forEach(button => {
-        button.replaceWith(button.cloneNode(true));
-    });
 
     // 语言切换
     const languageSelect = document.getElementById('languageSelect');
@@ -653,17 +679,17 @@ async function generateDocument() {
 }
 
 function showTaskSubmittedSuccess(taskId) {
-    const content = `
+    const content = \`
         <div class="success-animation">
             <div class="success-icon">
-                <i data-feather="check-circle" style="width: 64px; height: 64px; color: var(--success-color);"></i>
+                <div style="font-size: 64px; color: #22c55e;">✅</div>
             </div>
-            <h3>${t('task_submitted') || '任务提交成功！'}</h3>
-            <p>${t('task_submitted_message') || 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。'}</p>
-            <p><strong>Task ID:</strong> ${taskId}</p>
+            <h3>\${t('task_submitted') || '任务提交成功！'}</h3>
+            <p>\${t('task_submitted_message') || 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。'}</p>
+            <p><strong>Task ID:</strong> \${taskId}</p>
             <div id="autoReturnCountdown" style="margin-top: 1rem; color: var(--text-muted);"></div>
         </div>
-    `;
+    \`;
 
     const actions = [{
         text: t('return_to_list') || '返回列表',
@@ -675,11 +701,6 @@ function showTaskSubmittedSuccess(taskId) {
     }];
 
     showModal(t('success') || '成功', content, actions, 'success');
-
-    // 重新渲染图标
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
 
     // 倒计时自动返回
     let countdown = 4;
@@ -716,7 +737,7 @@ async function loadTasks(reset = false) {
 
     try {
         const response = await fetch(
-            `/api/tasks?userid=${currentUser.user_id}&page=${currentPage}&limit=10&access_key=${getAccessKey()}`
+            \`/api/tasks?userid=\${currentUser.user_id}&page=\${currentPage}&limit=10&access_key=\${getAccessKey()}\`
         );
 
         const result = await response.json();
@@ -762,11 +783,6 @@ async function loadTasks(reset = false) {
             } else {
                 stopPolling();
             }
-
-            // 重新渲染图标
-            if (typeof feather !== 'undefined') {
-                feather.replace();
-            }
         }
 
     } catch (error) {
@@ -777,36 +793,34 @@ async function loadTasks(reset = false) {
 function createTaskElement(task) {
     const taskElement = document.createElement('div');
     taskElement.className = 'task-item';
-    taskElement.innerHTML = `
+    taskElement.innerHTML = \`
         <div class="task-header">
             <div class="task-info">
-                <div class="task-id">ID: ${task.task_id}</div>
-                <div class="task-note" onclick="editNote('${task.task_id}', this)">${task.note || t('no_note')}</div>
+                <div class="task-id">ID: \${task.task_id}</div>
+                <div class="task-note" onclick="editNote('\${task.task_id}', this)">\${task.note || t('no_note')}</div>
                 <div class="task-meta">
-                    <span>${formatDate(task.created_at)}</span>
-                    <span class="task-status ${task.status}">
-                        ${task.status_text || task.status}
+                    <span>\${formatDate(task.created_at)}</span>
+                    <span class="task-status \${task.status}">
+                        \${task.status_text || task.status}
                     </span>
-                    <span>${t('format_' + task.file_format)}</span>
+                    <span>\${t('format_' + task.file_format)}</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${task.progress}%"></div>
+                    <div class="progress-fill" style="width: \${task.progress}%"></div>
                 </div>
             </div>
             <div class="task-actions">
-                ${task.status === 'completed' && task.filename ?
-                    `<button class="btn btn-success btn-sm" onclick="downloadFile('${task.task_id}')" type="button">
-                        <i data-feather="download"></i>
-                        ${t('download')}
-                    </button>` : ''
+                \${task.status === 'completed' && task.filename ?
+                    \`<button class="btn btn-success btn-sm" onclick="downloadFile('\${task.task_id}')" type="button">
+                        📥 \${t('download')}
+                    </button>\` : ''
                 }
-                <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.task_id}')" type="button">
-                    <i data-feather="trash-2"></i>
-                    ${t('delete')}
+                <button class="btn btn-danger btn-sm" onclick="deleteTask('\${task.task_id}')" type="button">
+                    🗑️ \${t('delete')}
                 </button>
             </div>
         </div>
-    `;
+    \`;
 
     return taskElement;
 }
@@ -815,7 +829,7 @@ async function downloadFile(taskId) {
     console.log('下载文件:', taskId);
 
     try {
-        const response = await fetch(`/api/download?task_id=${taskId}&access_key=${getAccessKey()}`);
+        const response = await fetch(\`/api/download?task_id=\${taskId}&access_key=\${getAccessKey()}\`);
 
         if (response.ok) {
             const blob = await response.blob();
@@ -841,7 +855,7 @@ function deleteTask(taskId) {
     showConfirm(t('confirm_delete') || '确定要删除这个文档吗？', async () => {
         try {
             const response = await fetch(
-                `/api/delete?task_id=${taskId}&userid=${currentUser.user_id}&access_key=${getAccessKey()}`,
+                \`/api/delete?task_id=\${taskId}&userid=\${currentUser.user_id}&access_key=\${getAccessKey()}\`,
                 { method: 'DELETE' }
             );
 
@@ -926,7 +940,7 @@ function startPolling() {
 
         try {
             const response = await fetch(
-                `/api/check-pending?userid=${currentUser.user_id}&access_key=${getAccessKey()}`
+                \`/api/check-pending?userid=\${currentUser.user_id}&access_key=\${getAccessKey()}\`
             );
 
             const result = await response.json();
@@ -962,3 +976,5 @@ window.generateDocument = generateDocument;
 window.loadTasks = loadTasks;
 
 console.log('JavaScript 文件加载完成');
+`;
+}
