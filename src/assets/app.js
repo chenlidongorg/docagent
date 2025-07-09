@@ -781,7 +781,7 @@ function initEventListeners() {
 // 🔥 修改任务管理方法 - 确保正确发送用户信息
 async function generateDocument() {
     // 🔑 检查登录状态
-    if (!currentUser || !currentUser.token) {
+    if (!currentUser.token) {
         console.log('用户未登录，显示登录框');
         showLoginModal();
         return;
@@ -809,13 +809,6 @@ async function generateDocument() {
 
         // 🔑 关键修改：确保正确添加用户认证信息
         formData.append('user_token', currentUser.token);
-        formData.append('user_id', currentUser.user_id);
-
-        console.log('发送的用户信息:', {
-            user_token: currentUser.token ? '有token(长度:' + currentUser.token.length + ')' : '无token',
-            user_id: currentUser.user_id,
-            file_count: selectedFiles.length
-        });
 
         selectedFiles.forEach((file, index) => {
             formData.append('file_' + index, file);

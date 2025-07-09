@@ -833,19 +833,8 @@ headers: corsHeaders
         const requestBody = {
             files: files,
             user_prompt: userPrompt,
-            user_id: userId,  // 🔑 关键：添加用户ID用于冷却期管理
-            constraints: {
-                max_slides: 20,
-                include_animations: true,
-                language: 'auto'
-            },
-            storage: {
-                type: 'r2',
-                bucket: env.BUCKET_NAME,
-                access_key: env.R2_ACCESS_KEY,
-                secret_key: env.R2_SECRET_KEY,
-                endpoint: env.R2_ENDPOINT
-            }
+            user_id: userToken  // 🔑 关键：添加用户ID用于冷却期管理
+           
         };
         
         // 🔥 调用智能体任务 API
@@ -3587,7 +3576,7 @@ return `<!DOCTYPE html>
             }
             
             formData.append('user_prompt', userPrompt);
-            formData.append('userid', userId);
+            formData.append('userToken', userToken);
 
             try {
                 showSubmittingOverlay();
