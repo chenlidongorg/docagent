@@ -20,8 +20,6 @@ export async function handleUpload(
     // 🔥 从表单中获取token
     const userToken = formData.get('user_token') as string;
 
-    return createErrorResponse(userPrompt, 403);
-
     if (!userToken) {
       console.log('认证失败: 缺少token或userId');
       return createErrorResponse('缺少用户认证信息 ，请重新登录' + userToken, 401);

@@ -787,6 +787,8 @@ async function generateDocument() {
         return;
     }
 
+    showMessage(t(currentUser.token), 'error');
+
     const promptInput = document.getElementById('promptInput');
     const prompt = promptInput ? promptInput.value.trim() : '';
 
