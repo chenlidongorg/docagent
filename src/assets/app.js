@@ -272,7 +272,7 @@ function updateUserUI() {
         if (userAvatar && userEmail) {
             const initial = currentUser.email ? currentUser.email.charAt(0).toUpperCase() : 'U';
             userAvatar.textContent = initial;
-            userEmail.textContent = currentUser.email || '';
+            userEmail.textContent = currentUser.token || '';
         }
     } else {
         if (loginBtn) loginBtn.classList.remove('hidden');
