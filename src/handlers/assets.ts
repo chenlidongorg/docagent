@@ -973,17 +973,19 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initApp() {
     console.log('初始化应用...');
 
+ /*
     // 检查访问权限
-    if (!getAccessKey()) {
-        document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供访问密钥</h2></div>';
-        return;
-    }
+     if (!getAccessKey()) {
+         document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供访问密钥</h2></div>';
+         return;
+     }
 
-    // 检查用户ID
-    if (!getUserId()) {
-        document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供用户ID</h2></div>';
-        return;
-    }
+     // 检查用户ID
+     if (!getUserId()) {
+         document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供用户ID</h2></div>';
+         return;
+     }
+ */
 
     // 使用内置的国际化配置
     i18nData = i18nConfig;
