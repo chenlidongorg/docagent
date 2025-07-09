@@ -19,186 +19,11 @@ function apiUrl(path) {
     return path + separator + 'access_key=' + encodeURIComponent(accessKey);
 }
 
-// 初始化应用
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM加载完成，开始初始化...');
-    initApp();
-});
-
-async function initApp() {
-    console.log('初始化应用...');
-
-    // 检查访问权限
-    if (!getAccessKey()) {
-        document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供访问密钥</h2></div>';
-        return;
-    }
-
-    // 加载国际化配置
-    await loadI18n();
-
-    // 初始化语言
-    const savedLanguage = localStorage.getItem('docagent_language') || 'zh';
-    currentLanguage = savedLanguage;
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        languageSelect.value = currentLanguage;
-    }
-
-    // 加载用户信息
-    loadUserFromStorage();
-    updateUserUI();
-
-    // 初始化UI
-    updateLanguage();
-
-    // 等待DOM完全准备好后再初始化事件
-    setTimeout(() => {
-        initFileUpload();
-        initEventListeners();
-    }, 100);
-
-    // 加载任务列表
-    if (currentUser) {
-        loadTasks();
-    }
-
-    console.log('应用初始化完成');
+function getAccessKey() {
+    return new URLSearchParams(window.location.search).get('access_key');
 }
 
-async function loadI18n() {
-    try {
-        const response = await fetch(apiUrl('/api/i18n'));
-        if (response.ok) {
-            i18nData = await response.json();
-            console.log('国际化配置加载成功');
-        } else {
-            throw new Error(`HTTP ${response.status}`);
-        }
-    } catch (error) {
-        console.error('Failed to load i18n:', error);
-        // 提供默认的 i18n 配置
-        i18nData = {
-            zh: {
-                doc_ai_agent: '文档生成智能体',
-                doc_ai_agent_short: '文档智能体',
-                login: '登录',
-                logout: '退出',
-                login_required: '请先登录',
-                login_success: '登录成功',
-                logout_success: '已退出登录',
-                send_verification: '发送验证码',
-                verify_code: '验证登录',
-                email: '邮箱',
-                verification_code: '验证码',
-                code_sent_message: '验证码已发送到您的邮箱，请查收',
-                create_document: '创建文档',
-                drag_or_click: '拖拽文件到此处或点击选择文件(可选)',
-                supported_formats: '支持 PDF, PNG, JPG, DOCX, PPTX, XLSX 等格式',
-                document_requirements: '文档需求描述',
-                requirements_placeholder: '请描述您希望生成的文档内容和格式要求（如未上传文件则必填）...',
-                generate_document_btn: '开始生成',
-                uploading: '上传中...',
-                my_documents: '我的文档',
-                no_document_records: '暂无文档记录',
-                load_more: '加载更多',
-                refresh: '刷新',
-                download: '下载',
-                delete: '删除',
-                no_note: '无备注',
-                task_submitted: '任务提交成功！',
-                task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。',
-                return_to_list: '返回列表',
-                auto_return_seconds: '秒后自动返回',
-                upload_failed: '上传失败',
-                download_failed: '下载失败',
-                delete_failed: '删除失败',
-                update_failed: '更新失败',
-                delete_success: '删除成功',
-                file_too_large: '文件过大，最大支持50MB',
-                files_or_prompt_required: '请上传文件或描述您的文档需求',
-                cooldown_wait_hint: '请求过于频繁，请稍后再试',
-                confirm_delete: '确定要删除这个文档吗？',
-                confirm: '确定',
-                cancel: '取消',
-                ok: '好的',
-                success: '成功',
-                error: '错误',
-                warning: '警告',
-                info: '提示',
-                copyright: '版权所有',
-                format_pptx: 'PPT演示',
-                format_pdf: 'PDF文档',
-                format_docx: 'Word文档',
-                format_xlsx: 'Excel表格',
-                format_png: '图片',
-                format_md: 'Markdown',
-                format_html: '网页',
-                format_json: 'JSON',
-                format_unknown: '未知格式'
-            },
-            en: {
-                doc_ai_agent: 'Document Generation Agent',
-                doc_ai_agent_short: 'Doc Agent',
-                login: 'Login',
-                logout: 'Logout',
-                login_required: 'Login Required',
-                login_success: 'Login successful',
-                logout_success: 'Logged out successfully',
-                send_verification: 'Send Code',
-                verify_code: 'Verify Login',
-                email: 'Email',
-                verification_code: 'Verification Code',
-                code_sent_message: 'Verification code has been sent to your email',
-                create_document: 'Create Document',
-                drag_or_click: 'Drag files here or click to select (optional)',
-                supported_formats: 'Supports PDF, PNG, JPG, DOCX, PPTX, XLSX formats',
-                document_requirements: 'Document Requirements',
-                requirements_placeholder: 'Please describe the content and format requirements for your document (required if no files uploaded)...',
-                generate_document_btn: 'Start Generate',
-                uploading: 'Uploading...',
-                my_documents: 'My Documents',
-                no_document_records: 'No document records',
-                load_more: 'Load More',
-                refresh: 'Refresh',
-                download: 'Download',
-                delete: 'Delete',
-                no_note: 'No note',
-                task_submitted: 'Task Submitted Successfully!',
-                task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format. The task has been queued for processing, you can leave the page and check results later.',
-                return_to_list: 'Return to List',
-                auto_return_seconds: 's until auto return',
-                upload_failed: 'Upload failed',
-                download_failed: 'Download failed',
-                delete_failed: 'Delete failed',
-                update_failed: 'Update failed',
-                delete_success: 'Delete successful',
-                file_too_large: 'File too large, maximum 50MB supported',
-                files_or_prompt_required: 'Please upload files or describe your document requirements',
-                cooldown_wait_hint: 'Too frequent requests, please try again later',
-                confirm_delete: 'Are you sure you want to delete this document?',
-                confirm: 'Confirm',
-                cancel: 'Cancel',
-                ok: 'OK',
-                success: 'Success',
-                error: 'Error',
-                warning: 'Warning',
-                info: 'Info',
-                copyright: 'All rights reserved',
-                format_pptx: 'PPT',
-                format_pdf: 'PDF',
-                format_docx: 'Word',
-                format_xlsx: 'Excel',
-                format_png: 'Image',
-                format_md: 'Markdown',
-                format_html: 'HTML',
-                format_json: 'JSON',
-                format_unknown: 'Unknown'
-            }
-        };
-    }
-}
-
+// 国际化相关函数
 function t(key) {
     return i18nData[currentLanguage][key] || key;
 }
@@ -215,11 +40,147 @@ function updateLanguage() {
     });
 }
 
-function getAccessKey() {
-    return new URLSearchParams(window.location.search).get('access_key');
+async function loadI18n() {
+    try {
+        const response = await fetch(apiUrl('/api/i18n'));
+        if (response.ok) {
+            i18nData = await response.json();
+            console.log('国际化配置加载成功');
+        } else {
+            throw new Error(`HTTP ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Failed to load i18n:', error);
+        // 使用默认配置
+       // i18nData = getDefaultI18nConfig();
+    }
 }
+/*
 
-// 认证相关方法
+// 默认国际化配置
+function getDefaultI18nConfig() {
+    return {
+        zh: {
+            doc_ai_agent: '文档生成智能体',
+            doc_ai_agent_short: '文档智能体',
+            login: '登录',
+            logout: '退出',
+            login_required: '请先登录',
+            login_success: '登录成功',
+            logout_success: '已退出登录',
+            send_verification: '发送验证码',
+            verify_code: '验证登录',
+            email: '邮箱',
+            verification_code: '验证码',
+            code_sent_message: '验证码已发送到您的邮箱，请查收',
+            create_document: '创建文档',
+            drag_or_click: '拖拽文件到此处或点击选择文件(可选)',
+            supported_formats: '支持 PDF, PNG, JPG, DOCX, PPTX, XLSX 等格式',
+            document_requirements: '文档需求描述',
+            requirements_placeholder: '请描述您希望生成的文档内容和格式要求（如未上传文件则必填）...',
+            generate_document_btn: '开始生成',
+            uploading: '上传中...',
+            my_documents: '我的文档',
+            no_document_records: '暂无文档记录',
+            load_more: '加载更多',
+            refresh: '刷新',
+            download: '下载',
+            delete: '删除',
+            no_note: '无备注',
+            task_submitted: '任务提交成功！',
+            task_submitted_message: 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。',
+            return_to_list: '返回列表',
+            auto_return_seconds: '秒后自动返回',
+            upload_failed: '上传失败',
+            download_failed: '下载失败',
+            delete_failed: '删除失败',
+            update_failed: '更新失败',
+            delete_success: '删除成功',
+            file_too_large: '文件过大，最大支持50MB',
+            files_or_prompt_required: '请上传文件或描述您的文档需求',
+            cooldown_wait_hint: '请求过于频繁，请稍后再试',
+            confirm_delete: '确定要删除这个文档吗？',
+            confirm: '确定',
+            cancel: '取消',
+            ok: '好的',
+            success: '成功',
+            error: '错误',
+            warning: '警告',
+            info: '提示',
+            copyright: '版权所有',
+            format_pptx: 'PPT演示',
+            format_pdf: 'PDF文档',
+            format_docx: 'Word文档',
+            format_xlsx: 'Excel表格',
+            format_png: '图片',
+            format_md: 'Markdown',
+            format_html: '网页',
+            format_json: 'JSON',
+            format_unknown: '未知格式'
+        },
+        en: {
+            doc_ai_agent: 'Document Generation Agent',
+            doc_ai_agent_short: 'Doc Agent',
+            login: 'Login',
+            logout: 'Logout',
+            login_required: 'Login Required',
+            login_success: 'Login successful',
+            logout_success: 'Logged out successfully',
+            send_verification: 'Send Code',
+            verify_code: 'Verify Login',
+            email: 'Email',
+            verification_code: 'Verification Code',
+            code_sent_message: 'Verification code has been sent to your email',
+            create_document: 'Create Document',
+            drag_or_click: 'Drag files here or click to select (optional)',
+            supported_formats: 'Supports PDF, PNG, JPG, DOCX, PPTX, XLSX formats',
+            document_requirements: 'Document Requirements',
+            requirements_placeholder: 'Please describe the content and format requirements for your document (required if no files uploaded)...',
+            generate_document_btn: 'Start Generate',
+            uploading: 'Uploading...',
+            my_documents: 'My Documents',
+            no_document_records: 'No document records',
+            load_more: 'Load More',
+            refresh: 'Refresh',
+            download: 'Download',
+            delete: 'Delete',
+            no_note: 'No note',
+            task_submitted: 'Task Submitted Successfully!',
+            task_submitted_message: 'AI agent is analyzing your requirements and selecting the best document format. The task has been queued for processing, you can leave the page and check results later.',
+            return_to_list: 'Return to List',
+            auto_return_seconds: 's until auto return',
+            upload_failed: 'Upload failed',
+            download_failed: 'Download failed',
+            delete_failed: 'Delete failed',
+            update_failed: 'Update failed',
+            delete_success: 'Delete successful',
+            file_too_large: 'File too large, maximum 50MB supported',
+            files_or_prompt_required: 'Please upload files or describe your document requirements',
+            cooldown_wait_hint: 'Too frequent requests, please try again later',
+            confirm_delete: 'Are you sure you want to delete this document?',
+            confirm: 'Confirm',
+            cancel: 'Cancel',
+            ok: 'OK',
+            success: 'Success',
+            error: 'Error',
+            warning: 'Warning',
+            info: 'Info',
+            copyright: 'All rights reserved',
+            format_pptx: 'PPT',
+            format_pdf: 'PDF',
+            format_docx: 'Word',
+            format_xlsx: 'Excel',
+            format_png: 'Image',
+            format_md: 'Markdown',
+            format_html: 'HTML',
+            format_json: 'JSON',
+            format_unknown: 'Unknown'
+        }
+    };
+}
+*/
+
+// 认证相关函数
 function loadUserFromStorage() {
     const userStr = localStorage.getItem('docagent_user');
     if (userStr) {
@@ -260,6 +221,92 @@ function updateUserUI() {
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (userInfo) userInfo.classList.add('hidden');
     }
+}
+
+// 模态框相关函数
+function showModal(title, content, actions = [], type = 'info') {
+    const modal = document.getElementById('genericModal');
+    const modalTitle = document.getElementById('genericModalTitle');
+    const modalBody = document.getElementById('genericModalBody');
+    const modalActions = document.getElementById('genericModalActions');
+
+    if (!modal || !modalTitle || !modalBody || !modalActions) return;
+
+    modalTitle.textContent = title;
+    modalBody.innerHTML = content;
+    modalActions.innerHTML = '';
+
+    actions.forEach(action => {
+        const button = document.createElement('button');
+        button.className = `btn ${action.className || 'btn-secondary'}`;
+        button.textContent = action.text;
+        button.type = 'button';
+        button.onclick = action.onClick;
+        modalActions.appendChild(button);
+    });
+
+    modal.classList.add('show');
+
+    // 重新渲染图标
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+}
+
+function closeGenericModal() {
+    const modal = document.getElementById('genericModal');
+    if (modal) modal.classList.remove('show');
+}
+
+function showLoginModal() {
+    console.log('显示登录模态框');
+    const modal = document.getElementById('loginModal');
+    if (modal) {
+        modal.classList.add('show');
+        document.getElementById('emailStep').classList.remove('hidden');
+        document.getElementById('codeStep').classList.add('hidden');
+        document.getElementById('loginEmail').focus();
+    }
+}
+
+function closeLoginModal() {
+    const modal = document.getElementById('loginModal');
+    if (modal) modal.classList.remove('show');
+}
+
+function showMessage(message, type = 'success') {
+    const actions = [{
+        text: t('ok') || '确定',
+        className: 'btn-primary',
+        onClick: () => closeGenericModal()
+    }];
+
+    showModal(t(type) || type, message, actions, type);
+}
+
+function showConfirm(message, onConfirm, onCancel) {
+    const actions = [
+        {
+            text: t('cancel') || '取消',
+            className: 'btn-secondary',
+            onClick: onCancel || (() => closeGenericModal())
+        },
+        {
+            text: t('confirm') || '确定',
+            className: 'btn-primary',
+            onClick: onConfirm
+        }
+    ];
+
+    showModal(t('confirm') || '确认', message, actions, 'warning');
+}
+
+function requireLogin() {
+    if (!currentUser) {
+        showLoginModal();
+        return false;
+    }
+    return true;
 }
 
 // 登录相关函数
@@ -382,7 +429,71 @@ async function handleLogout() {
     if (noTasks) noTasks.classList.remove('hidden');
 }
 
-// 文件上传相关方法
+// 文件处理相关函数
+function handleFileSelection(files) {
+    console.log('处理文件选择:', files.length);
+
+    files.forEach(file => {
+        if (file.size > 50 * 1024 * 1024) {
+            showMessage(t('file_too_large'), 'error');
+            return;
+        }
+
+        if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+            selectedFiles.push(file);
+        }
+    });
+
+    updateFileList();
+}
+
+function updateFileList() {
+    const fileList = document.getElementById('fileList');
+    if (!fileList) return;
+
+    if (selectedFiles.length === 0) {
+        fileList.classList.add('hidden');
+        return;
+    }
+
+    fileList.classList.remove('hidden');
+    fileList.innerHTML = selectedFiles.map((file, index) => \`
+        <div class="file-item">
+            <div class="file-info">
+                <span class="file-name">\${file.name}</span>
+                <span class="file-size">(\${formatFileSize(file.size)})</span>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="removeFile(\${index})" type="button">
+                <i data-feather="x"></i>
+            </button>
+        </div>
+    \`).join('');
+
+    // 重新渲染图标
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+}
+
+function removeFile(index) {
+    console.log('删除文件:', index);
+    selectedFiles.splice(index, 1);
+    updateFileList();
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatDate(timestamp) {
+    return new Date(timestamp).toLocaleString(currentLanguage === 'zh' ? 'zh-CN' : 'en-US');
+}
+
+// 初始化函数
 function initFileUpload() {
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
@@ -427,156 +538,6 @@ function initFileUpload() {
     });
 }
 
-function handleFileSelection(files) {
-    console.log('处理文件选择:', files.length);
-
-    files.forEach(file => {
-        if (file.size > 50 * 1024 * 1024) {
-            showMessage(t('file_too_large'), 'error');
-            return;
-        }
-
-        if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
-            selectedFiles.push(file);
-        }
-    });
-
-    updateFileList();
-}
-
-function updateFileList() {
-    const fileList = document.getElementById('fileList');
-    if (!fileList) return;
-
-    if (selectedFiles.length === 0) {
-        fileList.classList.add('hidden');
-        return;
-    }
-
-    fileList.classList.remove('hidden');
-    fileList.innerHTML = selectedFiles.map((file, index) => `
-        <div class="file-item">
-            <div class="file-info">
-                <span class="file-name">${file.name}</span>
-                <span class="file-size">(${formatFileSize(file.size)})</span>
-            </div>
-            <button class="btn btn-sm btn-danger" onclick="removeFile(${index})" type="button">
-                <i data-feather="x"></i>
-            </button>
-        </div>
-    `).join('');
-
-    // 重新渲染图标
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
-}
-
-function removeFile(index) {
-    console.log('删除文件:', index);
-    selectedFiles.splice(index, 1);
-    updateFileList();
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function formatDate(timestamp) {
-    return new Date(timestamp).toLocaleString(currentLanguage === 'zh' ? 'zh-CN' : 'en-US');
-}
-
-// 模态框方法
-function showModal(title, content, actions = [], type = 'info') {
-    const modal = document.getElementById('genericModal');
-    const modalTitle = document.getElementById('genericModalTitle');
-    const modalBody = document.getElementById('genericModalBody');
-    const modalActions = document.getElementById('genericModalActions');
-
-    if (!modal || !modalTitle || !modalBody || !modalActions) return;
-
-    modalTitle.textContent = title;
-    modalBody.innerHTML = content;
-    modalActions.innerHTML = '';
-
-    actions.forEach(action => {
-        const button = document.createElement('button');
-        button.className = `btn ${action.className || 'btn-secondary'}`;
-        button.textContent = action.text;
-        button.type = 'button';
-        button.onclick = action.onClick;
-        modalActions.appendChild(button);
-    });
-
-    modal.classList.add('show');
-
-    // 重新渲染图标
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
-}
-
-function closeGenericModal() {
-    const modal = document.getElementById('genericModal');
-    if (modal) modal.classList.remove('show');
-}
-
-function showLoginModal() {
-    console.log('显示登录模态框');
-    const modal = document.getElementById('loginModal');
-    if (modal) {
-        modal.classList.add('show');
-        document.getElementById('emailStep').classList.remove('hidden');
-        document.getElementById('codeStep').classList.add('hidden');
-        document.getElementById('loginEmail').focus();
-    }
-}
-
-function closeLoginModal() {
-    const modal = document.getElementById('loginModal');
-    if (modal) modal.classList.remove('show');
-}
-
-function showMessage(message, type = 'success') {
-    const actions = [{
-        text: t('ok') || '确定',
-        className: 'btn-primary',
-        onClick: () => closeGenericModal()
-    }];
-
-    showModal(t(type) || type, message, actions, type);
-}
-
-function showConfirm(message, onConfirm, onCancel) {
-    const actions = [
-        {
-            text: t('cancel') || '取消',
-            className: 'btn-secondary',
-            onClick: onCancel || (() => closeGenericModal())
-        },
-        {
-            text: t('confirm') || '确定',
-            className: 'btn-primary',
-            onClick: onConfirm
-        }
-    ];
-
-    showModal(t('confirm') || '确认', message, actions, 'warning');
-}
-
-function requireLogin() {
-    if (!currentUser) {
-        showLoginModal();
-        return false;
-    }
-    return true;
-}
-
-// 事件监听器初始化
 function initEventListeners() {
     console.log('初始化事件监听器...');
 
@@ -714,7 +675,7 @@ function initEventListeners() {
     console.log('事件监听器初始化完成');
 }
 
-// 任务管理方法
+// 任务管理函数
 async function generateDocument() {
     console.log('开始生成文档...');
 
@@ -775,17 +736,17 @@ async function generateDocument() {
 }
 
 function showTaskSubmittedSuccess(taskId) {
-    const content = `
+    const content = \`
         <div class="success-animation">
             <div class="success-icon">
                 <i data-feather="check-circle" style="width: 64px; height: 64px; color: var(--success-color);"></i>
             </div>
-            <h3>${t('task_submitted') || '任务提交成功！'}</h3>
-            <p>${t('task_submitted_message') || 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。'}</p>
-            <p><strong>Task ID:</strong> ${taskId}</p>
+            <h3>\${t('task_submitted') || '任务提交成功！'}</h3>
+            <p>\${t('task_submitted_message') || 'AI智能体正在分析您的需求并选择最佳文档格式。任务已进入队列处理，您可以离开页面稍后查看结果。'}</p>
+            <p><strong>Task ID:</strong> \${taskId}</p>
             <div id="autoReturnCountdown" style="margin-top: 1rem; color: var(--text-muted);"></div>
         </div>
-    `;
+    \`;
 
     const actions = [{
         text: t('return_to_list') || '返回列表',
@@ -824,7 +785,6 @@ function showTaskSubmittedSuccess(taskId) {
     updateCountdown();
 }
 
-// 任务加载函数
 async function loadTasks(reset = false) {
     if (!currentUser) return;
 
@@ -838,7 +798,7 @@ async function loadTasks(reset = false) {
 
     try {
         const response = await fetch(
-            apiUrl(`/api/tasks?userid=${currentUser.user_id}&page=${currentPage}&limit=10`)
+            apiUrl(\`/api/tasks?userid=\${currentUser.user_id}&page=\${currentPage}&limit=10\`)
         );
 
         const result = await response.json();
@@ -899,36 +859,36 @@ async function loadTasks(reset = false) {
 function createTaskElement(task) {
     const taskElement = document.createElement('div');
     taskElement.className = 'task-item';
-    taskElement.innerHTML = `
+    taskElement.innerHTML = \`
         <div class="task-header">
             <div class="task-info">
-                <div class="task-id">ID: ${task.task_id}</div>
-                <div class="task-note" onclick="editNote('${task.task_id}', this)">${task.note || t('no_note')}</div>
+                <div class="task-id">ID: \${task.task_id}</div>
+                <div class="task-note" onclick="editNote('\${task.task_id}', this)">\${task.note || t('no_note')}</div>
                 <div class="task-meta">
-                    <span>${formatDate(task.created_at)}</span>
-                    <span class="task-status ${task.status}">
-                        ${task.status_text || task.status}
+                    <span>\${formatDate(task.created_at)}</span>
+                    <span class="task-status \${task.status}">
+                        \${task.status_text || task.status}
                     </span>
-                    <span>${t('format_' + task.file_format)}</span>
+                    <span>\${t('format_' + task.file_format)}</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${task.progress}%"></div>
+                    <div class="progress-fill" style="width: \${task.progress}%"></div>
                 </div>
             </div>
             <div class="task-actions">
-                ${task.status === 'completed' && task.filename ?
-                    `<button class="btn btn-success btn-sm" onclick="downloadFile('${task.task_id}')" type="button">
+                \${task.status === 'completed' && task.filename ?
+                    \`<button class="btn btn-success btn-sm" onclick="downloadFile('\${task.task_id}')" type="button">
                         <i data-feather="download"></i>
-                        ${t('download')}
-                    </button>` : ''
+                        \${t('download')}
+                    </button>\` : ''
                 }
-                <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.task_id}')" type="button">
+                <button class="btn btn-danger btn-sm" onclick="deleteTask('\${task.task_id}')" type="button">
                     <i data-feather="trash-2"></i>
-                    ${t('delete')}
+                    \${t('delete')}
                 </button>
             </div>
         </div>
-    `;
+    \`;
 
     return taskElement;
 }
@@ -937,7 +897,7 @@ async function downloadFile(taskId) {
     console.log('下载文件:', taskId);
 
     try {
-        const response = await fetch(apiUrl(`/api/download?task_id=${taskId}`));
+        const response = await fetch(apiUrl(\`/api/download?task_id=\${taskId}\`));
 
         if (response.ok) {
             const blob = await response.blob();
@@ -963,7 +923,7 @@ function deleteTask(taskId) {
     showConfirm(t('confirm_delete') || '确定要删除这个文档吗？', async () => {
         try {
             const response = await fetch(
-                apiUrl(`/api/delete?task_id=${taskId}&userid=${currentUser.user_id}`),
+                apiUrl(\`/api/delete?task_id=\${taskId}&userid=\${currentUser.user_id}\`),
                 { method: 'DELETE' }
             );
 
@@ -1048,7 +1008,7 @@ function startPolling() {
 
         try {
             const response = await fetch(
-                apiUrl(`/api/check-pending?userid=${currentUser.user_id}`)
+                apiUrl(\`/api/check-pending?userid=\${currentUser.user_id}\`)
             );
 
             const result = await response.json();
@@ -1069,6 +1029,53 @@ function stopPolling() {
     }
 }
 
+// 初始化应用
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM加载完成，开始初始化...');
+    initApp();
+});
+
+async function initApp() {
+    console.log('初始化应用...');
+
+    // 检查访问权限
+    if (!getAccessKey()) {
+        document.body.innerHTML = '<div style="text-align: center; margin-top: 100px;"><h2>请提供访问密钥</h2></div>';
+        return;
+    }
+
+    // 加载国际化配置
+    await loadI18n();
+
+    // 初始化语言
+    const savedLanguage = localStorage.getItem('docagent_language') || 'zh';
+    currentLanguage = savedLanguage;
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.value = currentLanguage;
+    }
+
+    // 加载用户信息
+    loadUserFromStorage();
+    updateUserUI();
+
+    // 初始化UI
+    updateLanguage();
+
+    // 等待DOM完全准备好后再初始化事件
+    setTimeout(() => {
+        initFileUpload();
+        initEventListeners();
+    }, 100);
+
+    // 加载任务列表
+    if (currentUser) {
+        loadTasks();
+    }
+
+    console.log('应用初始化完成');
+}
+
 // 暴露全局函数（为了 onclick 事件）
 window.showLoginModal = showLoginModal;
 window.closeLoginModal = closeLoginModal;
@@ -1084,3 +1091,5 @@ window.generateDocument = generateDocument;
 window.loadTasks = loadTasks;
 
 console.log('JavaScript 文件加载完成');
+`;
+}

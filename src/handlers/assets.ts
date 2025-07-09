@@ -706,7 +706,6 @@ body {
 }
 
 async function getAppJS(): Promise<string> {
-  // 返回修改后的 JavaScript 代码
   return `
 // 全局变量
 let currentLanguage = 'zh';
@@ -726,6 +725,10 @@ function apiUrl(path) {
 
     const separator = path.includes('?') ? '&' : '?';
     return path + separator + 'access_key=' + encodeURIComponent(accessKey);
+}
+
+function getAccessKey() {
+    return new URLSearchParams(window.location.search).get('access_key');
 }
 
 // 初始化应用
