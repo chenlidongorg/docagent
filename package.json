@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "wrangler dev --port 8787",
-    "build": "wrangler deploy --dry-run",
-    "deploy": "wrangler deploy"
+    "build": "vite build && wrangler deploy --dry-run",
+    "deploy": "vite build && wrangler deploy"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250708.0",
     "typescript": "^5.0.0",
-    "wrangler": "^3.114.10"
+    "wrangler": "^3.114.10",
+    "vite": "^4.0.0"
   }
 }

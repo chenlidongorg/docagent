@@ -1,7 +1,5 @@
 import { CloudflareEnv } from './types';
 import { createOptionsResponse } from './utils/response';
-import { checkAccess, handleUnauthorizedPage } from './handlers/auth';
-import { handleAssets } from './handlers/assets';
 import { handleUpload } from './handlers/upload';
 import { handleTasks, handleUpdateNote, handleDelete, handleStatus, handleCheckPending, handleHasPending, handleCleanupTask } from './handlers/tasks';
 import { handleDownload, handleDownloadWithData } from './handlers/download';
@@ -17,21 +15,14 @@ export default {
       return createOptionsResponse();
     }
 
-    // 处理静态资源
+    // 🔥 优雅的静态资源处理
     if (path.startsWith('/assets/')) {
-      return handleAssets(request, env);
+      return handleStaticAssets(request, env);
     }
 
-    // 🔥 完全移除访问权限检查
-    // const authError = checkAccess(request, env);
-    // if (authError) {
-    //   return authError;
-    // }
-
-    // 路由处理
+    // API 路由
     switch (path) {
       case '/':
-        // 🔥 直接返回页面，不检查任何参数
         return new Response(generateHTML(), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
         });
@@ -71,3 +62,43 @@ export default {
     }
   }
 };
+
+// 🔥 优雅的静态资源处理函数
+async function handleStaticAssets(request: Request, env: CloudflareEnv): Promise<Response> {
+  const url = new URL(request.url);
+  const path = url.pathname;
+
+  // 定义资源映射
+  const assetMap: Record<string, () => Promise<{ content: string; contentType: string }>> = {
+    '/assets/styles.css': async () => ({
+      content: await import('../public/assets/styles.css?raw').then(m => m.default),
+      contentType: 'text/css'
+    }),
+    '/assets/app.js': async () => ({
+      content: await import('../public/assets/app.js?raw').then(m => m.default),
+      contentType: 'application/javascript'
+    }),
+    '/assets/logo.png': async () => ({
+      content: `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline></svg>`,
+      contentType: 'image/svg+xml'
+    })
+  };
+
+  const assetLoader = assetMap[path];
+  if (!assetLoader) {
+    return new Response('Not Found', { status: 404 });
+  }
+
+  try {
+    const { content, contentType } = await assetLoader();
+    return new Response(content, {
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response('Internal Server Error', { status: 500 });
+  }
+}

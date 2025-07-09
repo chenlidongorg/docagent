@@ -1,9 +1,8 @@
-# wrangler.toml
 name = "docagent"
 main = "src/index.ts"
 compatibility_date = "2024-11-06"
 
-# 静态资源配置
+# 🔥 静态资源配置
 [site]
 bucket = "./public"
 
